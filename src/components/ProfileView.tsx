@@ -52,12 +52,27 @@ const ProfileView = () => {
               <Calendar className="w-5 h-5 text-diet" />
             </div>
             <div>
-              <h3 className="text-sm text-muted-foreground">Diet Adherence</h3>
-              <p className="text-2xl font-semibold">18 Days</p>
+              <h3 className="text-sm text-muted-foreground">Cardio Time</h3>
+              <p className="text-2xl font-semibold">18 Hours</p>
             </div>
           </div>
         </Card>
       </div>
+
+      <Card className="p-6 bg-card">
+        <h3 className="text-lg font-medium mb-4">Progress Photos</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="aspect-square rounded-lg bg-muted overflow-hidden">
+              <img
+                src={`https://images.unsplash.com/photo-167${i}332755192-727a05c4013d?w=200&h=200&fit=crop`}
+                alt={`Progress photo ${i}`}
+                className="w-full h-full object-cover hover:scale-105 transition-transform"
+              />
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card className="p-6 bg-card">
         <h3 className="text-lg font-medium mb-4">Weight Progress</h3>

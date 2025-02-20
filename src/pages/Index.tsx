@@ -4,6 +4,7 @@ import TabNavigation from "@/components/TabNavigation";
 import WorkoutLog from "@/components/WorkoutLog";
 import MealLog from "@/components/MealLog";
 import ProfileView from "@/components/ProfileView";
+import CommunityView from "@/components/CommunityView";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("workout");
@@ -16,6 +17,8 @@ const Index = () => {
         return <MealLog />;
       case "profile":
         return <ProfileView />;
+      case "community":
+        return <CommunityView />;
       default:
         return <WorkoutLog />;
     }
