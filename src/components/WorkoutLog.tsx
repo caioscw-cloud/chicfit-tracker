@@ -8,9 +8,9 @@ const WorkoutRoutine = ({ name, exercises, duration, calories }) => (
     <div className="flex justify-between items-start">
       <div>
         <h3 className="text-lg font-medium">{name}</h3>
-        <p className="text-sm text-muted-foreground">{exercises} exercises • {duration} min • {calories} cal</p>
+        <p className="text-sm text-muted-foreground">{exercises} exercícios • {duration} min • {calories} cal</p>
         <div className="mt-2 text-sm text-muted-foreground">
-          Next: Bench Press, Shoulder Press...
+          Próximo: Supino, Desenvolvimento...
         </div>
       </div>
       <Button variant="outline" size="icon" className="rounded-full">
@@ -29,7 +29,7 @@ const CompletedWorkout = ({ name, time, duration, calories }) => (
         <p className="text-sm text-muted-foreground">{duration} min • {calories} cal</p>
       </div>
       <span className="px-2 py-1 bg-workout/10 text-workout rounded-full text-xs">
-        Completed
+        Concluído
       </span>
     </div>
   </Card>
@@ -39,38 +39,38 @@ const WorkoutLog = () => {
   return (
     <div className="animate-fade-up space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Workout Log</h2>
+        <h2 className="text-2xl font-semibold">Registro de Treino</h2>
         <Button variant="outline" className="rounded-full">
           <Plus className="w-4 h-4 mr-2" />
-          New Routine
+          Nova Rotina
         </Button>
       </div>
 
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium mb-4">Your Routines</h3>
+          <h3 className="text-lg font-medium mb-4">Suas Rotinas</h3>
           <div className="grid gap-4">
-            <WorkoutRoutine name="Upper Body Power" exercises={8} duration={45} calories={350} />
-            <WorkoutRoutine name="Lower Body Focus" exercises={6} duration={40} calories={300} />
+            <WorkoutRoutine name="Treino Superior" exercises={8} duration={45} calories={350} />
+            <WorkoutRoutine name="Treino Inferior" exercises={6} duration={40} calories={300} />
             <Button variant="outline" className="w-full justify-between">
-              View All Routines
+              Ver Todas as Rotinas
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         <div>
-          <h3 className="text-lg font-medium mb-4">Recent Workouts</h3>
+          <h3 className="text-lg font-medium mb-4">Treinos Recentes</h3>
           <div className="grid gap-4">
             <CompletedWorkout 
-              name="Upper Body Power"
-              time="Today"
+              name="Treino Superior"
+              time="Hoje"
               duration={45}
               calories={350}
             />
             <CompletedWorkout 
-              name="HIIT Cardio"
-              time="Yesterday"
+              name="Cardio HIIT"
+              time="Ontem"
               duration={30}
               calories={280}
             />

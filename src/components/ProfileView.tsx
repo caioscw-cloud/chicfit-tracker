@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Calendar, Trophy } from "lucide-react";
@@ -18,19 +17,19 @@ const ProfileView = () => {
         <div className="w-24 h-24 rounded-full bg-gradient-to-r from-workout to-diet mx-auto mb-4 overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop"
-            alt="Profile"
+            alt="Perfil"
             className="w-full h-full object-cover"
           />
         </div>
-        <h2 className="text-2xl font-bold">John Fitness</h2>
-        <p className="text-muted-foreground">Fitness Enthusiast</p>
+        <h2 className="text-2xl font-bold">João Fitness</h2>
+        <p className="text-muted-foreground">Entusiasta do Fitness</p>
       </div>
 
       <Card className="p-6 bg-card">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          "Dedicated to achieving peak performance through consistent training and proper nutrition. 
-          Started my fitness journey in 2022 and never looked back. Passionate about strength training 
-          and helping others achieve their fitness goals."
+          "Dedicado a alcançar o máximo desempenho através de treino consistente e nutrição adequada. 
+          Comecei minha jornada fitness em 2022 e nunca olhei para trás. Apaixonado por musculação 
+          e por ajudar outros a alcançarem seus objetivos fitness."
         </p>
       </Card>
 
@@ -41,8 +40,8 @@ const ProfileView = () => {
               <Trophy className="w-5 h-5 text-workout" />
             </div>
             <div>
-              <h3 className="text-sm text-muted-foreground">Workout Streak</h3>
-              <p className="text-2xl font-semibold">24 Days</p>
+              <h3 className="text-sm text-muted-foreground">Sequência de Treinos</h3>
+              <p className="text-2xl font-semibold">24 Dias</p>
             </div>
           </div>
         </Card>
@@ -52,21 +51,21 @@ const ProfileView = () => {
               <Calendar className="w-5 h-5 text-diet" />
             </div>
             <div>
-              <h3 className="text-sm text-muted-foreground">Cardio Time</h3>
-              <p className="text-2xl font-semibold">18 Hours</p>
+              <h3 className="text-sm text-muted-foreground">Tempo de Cardio</h3>
+              <p className="text-2xl font-semibold">18 Horas</p>
             </div>
           </div>
         </Card>
       </div>
 
       <Card className="p-6 bg-card">
-        <h3 className="text-lg font-medium mb-4">Progress Photos</h3>
+        <h3 className="text-lg font-medium mb-4">Fotos de Progresso</h3>
         <div className="grid grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="aspect-square rounded-lg bg-muted overflow-hidden">
               <img
                 src={`https://images.unsplash.com/photo-167${i}332755192-727a05c4013d?w=200&h=200&fit=crop`}
-                alt={`Progress photo ${i}`}
+                alt={`Foto de progresso ${i}`}
                 className="w-full h-full object-cover hover:scale-105 transition-transform"
               />
             </div>
@@ -75,7 +74,7 @@ const ProfileView = () => {
       </Card>
 
       <Card className="p-6 bg-card">
-        <h3 className="text-lg font-medium mb-4">Weight Progress</h3>
+        <h3 className="text-lg font-medium mb-4">Progresso do Peso</h3>
         <div className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={weightData}>

@@ -28,7 +28,7 @@ const Index = () => {
     <div className="min-h-screen bg-background text-foreground font-['Inter'] antialiased flex flex-col">
       <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 pb-24">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-center">ChicFit</h1>
+          <h1 className="text-3xl font-bold text-center">Gym Bro</h1>
         </header>
         <main>{renderActiveTab()}</main>
       </div>
