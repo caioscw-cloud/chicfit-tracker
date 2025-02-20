@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const MacroDisplay = () => (
   <Card className="p-6 mb-6 bg-card">
@@ -26,29 +27,38 @@ const MacroDisplay = () => (
   </Card>
 );
 
-const MealSlot = ({ title, time, calories = 0, protein = 0 }) => (
-  <Card className="p-4 bg-card hover:bg-card-hover transition-colors">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-sm text-muted-foreground">{time}</p>
-        <h3 className="text-lg font-medium">{title}</h3>
-        {calories > 0 ? (
-          <p className="text-sm text-muted-foreground">{calories} cal • {protein}g proteína</p>
-        ) : (
-          <Button variant="outline" size="sm" className="mt-2">
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Refeição
-          </Button>
+const MealSlot = ({ title, time, calories = 0, protein = 0 }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <Card className="p-4 bg-card hover:bg-card-hover transition-colors">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm text-muted-foreground">{time}</p>
+          <h3 className="text-lg font-medium">{title}</h3>
+          {calories > 0 ? (
+            <p className="text-sm text-muted-foreground">{calories} cal • {protein}g proteína</p>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => navigate('/add-food')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Alimento
+            </Button>
+          )}
+        </div>
+        {calories > 0 && (
+          <span className="px-2 py-1 bg-diet/10 text-diet rounded-full text-xs">
+            Registrado
+          </span>
         )}
       </div>
-      {calories > 0 && (
-        <span className="px-2 py-1 bg-diet/10 text-diet rounded-full text-xs">
-          Registrado
-        </span>
-      )}
-    </div>
-  </Card>
-);
+    </Card>
+  );
+};
 
 const MealLog = () => {
   return (
