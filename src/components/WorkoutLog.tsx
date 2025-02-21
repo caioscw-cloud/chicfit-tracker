@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Play, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const WorkoutRoutine = ({ name, exercises, duration, calories }) => (
   <Card className="p-4 bg-card hover:bg-card-hover transition-colors">
@@ -36,11 +37,17 @@ const CompletedWorkout = ({ name, time, duration, calories }) => (
 );
 
 const WorkoutLog = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="animate-fade-up space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold">Registro de Treino</h2>
-        <Button variant="outline" className="rounded-full">
+        <Button 
+          variant="outline" 
+          className="rounded-full"
+          onClick={() => navigate('/new-workout')}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nova Rotina
         </Button>

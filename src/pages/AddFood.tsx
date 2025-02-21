@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowLeft, Plus } from "lucide-react";
+import { Search, ArrowLeft, Plus, Camera, Image as ImageIcon } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface FoodItem {
   id: string;
@@ -48,12 +49,51 @@ const commonFoods: FoodItem[] = [
 
 const AddFood = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [quantity, setQuantity] = useState("");
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
 
   const filteredFoods = commonFoods.filter(food =>
     food.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handlePhotoCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setCustomPhoto(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleAddToMeal = () => {
+    if (!quantity) {
+      toast({
+        title: "Quantidade necessária",
+        description: "Por favor, insira a quantidade em gramas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Alimento adicionado",
+      description: `${selectedFood?.name} (${quantity}g) foi adicionado à sua refeição.`,
+    });
+
+    navigate(-1);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -70,15 +110,25 @@ const AddFood = () => {
           <h1 className="text-2xl font-semibold">Adicionar Alimento</h1>
         </div>
 
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            type="search"
-            placeholder="Buscar alimentos..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              type="search"
+              placeholder="Buscar alimentos..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full"
+            onClick={handlePhotoCapture}
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -132,10 +182,19 @@ const AddFood = () => {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="aspect-square rounded-lg overflow-hidden">
                   <img
-                    src={selectedFood.image}
+                    src={customPhoto || selectedFood.image}
                     alt={selectedFood.name}
                     className="w-full h-full object-cover"
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute bottom-2 right-2"
+                    onClick={handlePhotoCapture}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Nova Foto
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   <p className="text-lg font-medium">{selectedFood.calories} kcal</p>
@@ -148,9 +207,14 @@ const AddFood = () => {
                 <Input
                   type="number"
                   placeholder="Quantidade (g)"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
                   className="w-full"
                 />
-                <Button className="w-full">
+                <Button 
+                  className="w-full"
+                  onClick={handleAddToMeal}
+                >
                   Adicionar à Refeição
                 </Button>
               </div>
