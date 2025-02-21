@@ -1,8 +1,17 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
-import { Calendar, Trophy } from "lucide-react";
+import { Calendar, Trophy, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 
-const weightData = [
+interface WeightEntry {
+  date: string;
+  weight: number;
+}
+
+const initialWeightData: WeightEntry[] = [
   { date: "Jan", weight: 70 },
   { date: "Feb", weight: 69 },
   { date: "Mar", weight: 68.5 },
@@ -11,6 +20,44 @@ const weightData = [
 ];
 
 const ProfileView = () => {
+  const { toast } = useToast();
+  const [weightData, setWeightData] = useState<WeightEntry[]>(initialWeightData);
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [newWeight, setNewWeight] = useState("");
+  const [editingWeight, setEditingWeight] = useState<WeightEntry | null>(null);
+
+  const handleAddWeight = () => {
+    const weight = parseFloat(newWeight);
+    if (isNaN(weight) || weight <= 0) {
+      toast({
+        title: "Peso inválido",
+        description: "Por favor, insira um peso válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const today = new Date();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const newEntry = {
+      date: monthNames[today.getMonth()],
+      weight: weight,
+    };
+
+    const updatedData = [...weightData, newEntry];
+    setWeightData(updatedData);
+    setShowWeightModal(false);
+    setNewWeight("");
+
+    const previousWeight = weightData[weightData.length - 1].weight;
+    const difference = weight - previousWeight;
+    
+    toast({
+      title: "Peso atualizado",
+      description: `${difference > 0 ? "+" : ""}${difference.toFixed(1)}kg desde a última medição.`,
+    });
+  };
+
   return (
     <div className="animate-fade-up space-y-6">
       <div className="text-center mb-8">
@@ -74,7 +121,18 @@ const ProfileView = () => {
       </Card>
 
       <Card className="p-6 bg-card">
-        <h3 className="text-lg font-medium mb-4">Progresso do Peso</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Progresso do Peso</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => setShowWeightModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Peso
+          </Button>
+        </div>
         <div className="h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={weightData}>
@@ -110,6 +168,38 @@ const ProfileView = () => {
           </ResponsiveContainer>
         </div>
       </Card>
+
+      {showWeightModal && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-semibold">Adicionar Peso</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowWeightModal(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-muted-foreground">Peso (kg)</label>
+                <Input
+                  type="number"
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(e.target.value)}
+                  step="0.1"
+                  className="mt-1"
+                />
+              </div>
+              <Button className="w-full" onClick={handleAddWeight}>
+                Salvar
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
