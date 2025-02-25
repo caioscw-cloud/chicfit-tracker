@@ -3,15 +3,31 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, X, ChevronDown, ChevronUp, Save, Search, Trophy, Clock, Scale, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Plus, X, ChevronDown, ChevronUp, Save, Search, Trophy, Clock, Scale, Trash2, FileText, Info } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Set {
   id: string;
+  type: 'work' | 'preparatory' | 'warmup' | 'failure' | 'drop';
   weight: number;
   reps: number;
   rest: number;
+  dropSetWeights?: number[];
+  dropSetReps?: number[];
 }
 
 interface Exercise {
@@ -60,39 +76,153 @@ const exerciseLibrary: ExerciseLibraryItem[] = [
 
 const customExercises: CustomExercise[] = [];
 
-const SetInput = ({ set, onUpdate, onDelete, isLast }) => (
-  <div className="grid grid-cols-4 gap-2 items-center">
-    <Input
-      type="number"
-      placeholder="Peso (kg)"
-      value={set.weight || ""}
-      onChange={(e) => onUpdate({ ...set, weight: parseFloat(e.target.value) })}
-      className="text-right"
-    />
-    <Input
-      type="number"
-      placeholder="Reps"
-      value={set.reps || ""}
-      onChange={(e) => onUpdate({ ...set, reps: parseInt(e.target.value) })}
-      className="text-right"
-    />
-    <Input
-      type="number"
-      placeholder="Descanso (s)"
-      value={set.rest || ""}
-      onChange={(e) => onUpdate({ ...set, rest: parseInt(e.target.value) })}
-      className="text-right"
-    />
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onDelete}
-      className="h-8 w-8"
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  </div>
-);
+const SetTypeInfo = {
+  work: {
+    label: "Série Normal",
+    description: "Série padrão para desenvolvimento muscular e força"
+  },
+  preparatory: {
+    label: "Série Preparatória",
+    description: "Série leve para preparar os músculos para cargas maiores"
+  },
+  warmup: {
+    label: "Aquecimento",
+    description: "Série mais leve focada em aquecer os músculos"
+  },
+  failure: {
+    label: "Falha",
+    description: "Série executada até a falha muscular"
+  },
+  drop: {
+    label: "Drop Set",
+    description: "Série com redução progressiva de peso sem descanso"
+  }
+};
+
+const SetInput = ({ set, onUpdate, onDelete, isLast }) => {
+  const [showDropSets, setShowDropSets] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-5 gap-2 items-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Select
+                value={set.type}
+                onValueChange={(value: Set['type']) => onUpdate({ ...set, type: value })}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SetTypeInfo).map(([type, info]) => (
+                    <SelectItem key={type} value={type}>
+                      <div className="flex items-center gap-2">
+                        {info.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{SetTypeInfo[set.type].description}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <Input
+          type="number"
+          placeholder="Peso (kg)"
+          value={set.weight || ""}
+          onChange={(e) => onUpdate({ ...set, weight: parseFloat(e.target.value) })}
+          className="text-right"
+        />
+        <Input
+          type="number"
+          placeholder="Reps"
+          value={set.reps || ""}
+          onChange={(e) => onUpdate({ ...set, reps: parseInt(e.target.value) })}
+          className="text-right"
+        />
+        <Input
+          type="number"
+          placeholder="Descanso (s)"
+          value={set.rest || ""}
+          onChange={(e) => onUpdate({ ...set, rest: parseInt(e.target.value) })}
+          className="text-right"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onDelete}
+          className="h-8 w-8"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {set.type === 'drop' && (
+        <div className="pl-4 border-l-2 border-primary/20">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-2"
+            onClick={() => setShowDropSets(!showDropSets)}
+          >
+            {showDropSets ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+            Configurar Drop Sets
+          </Button>
+          
+          {showDropSets && (
+            <div className="space-y-2">
+              {(set.dropSetWeights || []).map((weight, index) => (
+                <div key={index} className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Peso (kg)"
+                    value={weight || ""}
+                    onChange={(e) => {
+                      const newWeights = [...(set.dropSetWeights || [])];
+                      newWeights[index] = parseFloat(e.target.value);
+                      onUpdate({ ...set, dropSetWeights: newWeights });
+                    }}
+                    className="text-right"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Reps"
+                    value={set.dropSetReps?.[index] || ""}
+                    onChange={(e) => {
+                      const newReps = [...(set.dropSetReps || [])];
+                      newReps[index] = parseInt(e.target.value);
+                      onUpdate({ ...set, dropSetReps: newReps });
+                    }}
+                    className="text-right"
+                  />
+                </div>
+              ))}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  const newWeights = [...(set.dropSetWeights || []), 0];
+                  const newReps = [...(set.dropSetReps || []), 0];
+                  onUpdate({ ...set, dropSetWeights: newWeights, dropSetReps: newReps });
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Drop Set
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CreateExerciseModal = ({ query, onSave, onClose }) => {
   const [name, setName] = useState(query);
@@ -220,6 +350,7 @@ const ExerciseCard = ({ exercise, onUpdate, onDelete }) => {
   const addSet = () => {
     const newSet: Set = {
       id: Date.now().toString(),
+      type: 'work',
       weight: exercise.previousWeight || 0,
       reps: 12,
       rest: 60
@@ -367,6 +498,7 @@ const NewWorkout = () => {
       name: exerciseInfo.name,
       sets: [{
         id: Date.now().toString(),
+        type: 'work',
         weight: exerciseInfo.beginnerRange.min,
         reps: 12,
         rest: 60
