@@ -1,8 +1,25 @@
 
 import { Card } from "@/components/ui/card";
-import { Play, Plus, ChevronRight } from "lucide-react";
+import { Play, Plus, ChevronRight, Dumbbell, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Exercise {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  rest: number;
+}
+
+interface Workout {
+  id: string;
+  name: string;
+  exercises: Exercise[];
+  duration: number;
+  calories: number;
+}
 
 const WorkoutRoutine = ({ name, exercises, duration, calories }) => (
   <Card className="p-4 bg-card hover:bg-card-hover transition-colors">
@@ -38,19 +55,38 @@ const CompletedWorkout = ({ name, time, duration, calories }) => (
 
 const WorkoutLog = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleNewWorkout = () => {
+    navigate('/new-workout', { state: { type: 'single' } });
+  };
+
+  const handleNewRoutine = () => {
+    navigate('/new-workout', { state: { type: 'routine' } });
+  };
 
   return (
     <div className="animate-fade-up space-y-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-semibold">Registro de Treino</h2>
-        <Button 
-          variant="outline" 
-          className="rounded-full"
-          onClick={() => navigate('/new-workout')}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Rotina
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            className="w-full sm:w-auto rounded-full"
+            onClick={handleNewRoutine}
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Nova Rotina
+          </Button>
+          <Button 
+            variant="default"
+            className="w-full sm:w-auto rounded-full"
+            onClick={handleNewWorkout}
+          >
+            <Dumbbell className="w-4 h-4 mr-2" />
+            Criar Novo Treino
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">

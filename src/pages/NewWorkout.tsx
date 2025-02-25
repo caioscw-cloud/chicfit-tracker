@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, X, Clock, Save } from "lucide-react";
+import { ArrowLeft, Plus, X, Clock, Save, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface Exercise {
@@ -13,19 +13,38 @@ interface Exercise {
   sets: number;
   reps: number;
   rest: number;
+  equipment?: string;
 }
 
 const NewWorkout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const isRoutine = location.state?.type === 'routine';
+
   const [routineName, setRoutineName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentExercise, setCurrentExercise] = useState({
     name: "",
     sets: 3,
     reps: 12,
-    rest: 60
+    rest: 60,
+    equipment: ""
   });
+
+  const commonExercises = [
+    "Supino Reto",
+    "Agachamento",
+    "Levantamento Terra",
+    "Desenvolvimento",
+    "Remada",
+    "Rosca Direta",
+    "Extensão Triceps",
+    "Elevação Lateral"
+  ].filter(name => 
+    name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleAddExercise = () => {
     if (!currentExercise.name) {
@@ -45,12 +64,14 @@ const NewWorkout = () => {
       name: "",
       sets: 3,
       reps: 12,
-      rest: 60
+      rest: 60,
+      equipment: ""
     });
+    setSearchQuery("");
   };
 
-  const handleSaveRoutine = () => {
-    if (!routineName) {
+  const handleSaveWorkout = () => {
+    if (isRoutine && !routineName) {
       toast({
         title: "Nome da rotina necessário",
         description: "Por favor, dê um nome para sua rotina.",
@@ -62,15 +83,17 @@ const NewWorkout = () => {
     if (exercises.length === 0) {
       toast({
         title: "Exercícios necessários",
-        description: "Adicione pelo menos um exercício à rotina.",
+        description: "Adicione pelo menos um exercício.",
         variant: "destructive"
       });
       return;
     }
 
     toast({
-      title: "Rotina salva",
-      description: `A rotina "${routineName}" foi salva com sucesso.`
+      title: isRoutine ? "Rotina salva" : "Treino salvo",
+      description: isRoutine
+        ? `A rotina "${routineName}" foi salva com sucesso.`
+        : "Seu treino foi salvo com sucesso."
     });
     navigate(-1);
   };
@@ -87,17 +110,21 @@ const NewWorkout = () => {
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-2xl font-semibold">Nova Rotina</h1>
+          <h1 className="text-2xl font-semibold">
+            {isRoutine ? "Nova Rotina" : "Novo Treino"}
+          </h1>
         </div>
 
         <div className="space-y-6">
           <Card className="p-6 bg-card">
-            <Input
-              placeholder="Nome da Rotina"
-              value={routineName}
-              onChange={(e) => setRoutineName(e.target.value)}
-              className="text-lg font-medium mb-4"
-            />
+            {isRoutine && (
+              <Input
+                placeholder="Nome da Rotina"
+                value={routineName}
+                onChange={(e) => setRoutineName(e.target.value)}
+                className="text-lg font-medium mb-4"
+              />
+            )}
             
             <div className="space-y-4">
               {exercises.map((exercise, index) => (
@@ -107,6 +134,7 @@ const NewWorkout = () => {
                       <h3 className="font-medium">{exercise.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         {exercise.sets} séries × {exercise.reps} reps • {exercise.rest}s descanso
+                        {exercise.equipment && ` • ${exercise.equipment}`}
                       </p>
                     </div>
                     <Button
@@ -122,12 +150,37 @@ const NewWorkout = () => {
             </div>
 
             <div className="mt-4 space-y-4">
-              <Input
-                placeholder="Nome do Exercício"
-                value={currentExercise.name}
-                onChange={(e) => setCurrentExercise({ ...currentExercise, name: e.target.value })}
-              />
-              <div className="grid grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar ou adicionar exercício"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentExercise(prev => ({ ...prev, name: e.target.value }));
+                  }}
+                  className="pl-10"
+                />
+                {searchQuery && (
+                  <Card className="absolute w-full mt-1 p-2 bg-card z-10">
+                    {commonExercises.map((exercise) => (
+                      <Button
+                        key={exercise}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setCurrentExercise(prev => ({ ...prev, name: exercise }));
+                          setSearchQuery("");
+                        }}
+                      >
+                        {exercise}
+                      </Button>
+                    ))}
+                  </Card>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Input
                   type="number"
                   placeholder="Séries"
@@ -146,6 +199,11 @@ const NewWorkout = () => {
                   value={currentExercise.rest}
                   onChange={(e) => setCurrentExercise({ ...currentExercise, rest: parseInt(e.target.value) })}
                 />
+                <Input
+                  placeholder="Equipamento"
+                  value={currentExercise.equipment}
+                  onChange={(e) => setCurrentExercise({ ...currentExercise, equipment: e.target.value })}
+                />
               </div>
               <Button 
                 variant="outline" 
@@ -160,10 +218,10 @@ const NewWorkout = () => {
 
           <Button 
             className="w-full"
-            onClick={handleSaveRoutine}
+            onClick={handleSaveWorkout}
           >
             <Save className="w-4 h-4 mr-2" />
-            Salvar Rotina
+            {isRoutine ? "Salvar Rotina" : "Salvar Treino"}
           </Button>
         </div>
       </div>
