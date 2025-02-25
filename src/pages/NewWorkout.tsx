@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, X, ChevronDown, ChevronUp, Save, Search, Trophy, Clock, Scale, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, ChevronDown, ChevronUp, Save, Search, Trophy, Clock, Scale, Trash2, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Set {
   id: string;
@@ -22,6 +22,7 @@ interface Exercise {
   previousWeight?: number;
   personalRecord?: number;
   targetMuscles?: string[];
+  notes?: string;
 }
 
 interface ExerciseLibraryItem {
@@ -31,6 +32,11 @@ interface ExerciseLibraryItem {
   beginnerRange: { min: number; max: number };
   intermediateRange: { min: number; max: number };
   advancedRange: { min: number; max: number };
+}
+
+interface CustomExercise extends ExerciseLibraryItem {
+  isCustom: true;
+  notes?: string;
 }
 
 const exerciseLibrary: ExerciseLibraryItem[] = [
@@ -50,8 +56,9 @@ const exerciseLibrary: ExerciseLibraryItem[] = [
     intermediateRange: { min: 60, max: 100 },
     advancedRange: { min: 100, max: 200 }
   },
-  // ... add more exercises
 ];
+
+const customExercises: CustomExercise[] = [];
 
 const SetInput = ({ set, onUpdate, onDelete, isLast }) => (
   <div className="grid grid-cols-4 gap-2 items-center">
@@ -87,8 +94,128 @@ const SetInput = ({ set, onUpdate, onDelete, isLast }) => (
   </div>
 );
 
+const CreateExerciseModal = ({ query, onSave, onClose }) => {
+  const [name, setName] = useState(query);
+  const [targetMuscles, setTargetMuscles] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  const [beginnerRange, setBeginnerRange] = useState({ min: 0, max: 0 });
+  const [intermediateRange, setIntermediateRange] = useState({ min: 0, max: 0 });
+  const [advancedRange, setAdvancedRange] = useState({ min: 0, max: 0 });
+  const [notes, setNotes] = useState("");
+
+  const handleSave = () => {
+    const newExercise: CustomExercise = {
+      name,
+      targetMuscles,
+      description,
+      beginnerRange,
+      intermediateRange,
+      advancedRange,
+      isCustom: true,
+      notes
+    };
+    
+    customExercises.push(newExercise);
+    onSave(newExercise);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="max-w-md w-full p-6">
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-xl font-semibold">Criar Novo Exercício</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-muted-foreground">Nome</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Músculos Trabalhados (separados por vírgula)</label>
+            <Input
+              value={targetMuscles.join(", ")}
+              onChange={(e) => setTargetMuscles(e.target.value.split(",").map(s => s.trim()))}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Descrição</label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-1"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Notas Pessoais</label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="mt-1"
+              rows={3}
+              placeholder="Adicione dicas ou lembretes pessoais sobre este exercício..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground">Faixa Iniciante (kg)</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={beginnerRange.min}
+                  onChange={(e) => setBeginnerRange({ ...beginnerRange, min: parseInt(e.target.value) })}
+                />
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={beginnerRange.max}
+                  onChange={(e) => setBeginnerRange({ ...beginnerRange, max: parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Faixa Intermediário (kg)</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={intermediateRange.min}
+                  onChange={(e) => setIntermediateRange({ ...intermediateRange, min: parseInt(e.target.value) })}
+                />
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={intermediateRange.max}
+                  onChange={(e) => setIntermediateRange({ ...intermediateRange, max: parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button className="w-full" onClick={handleSave}>
+            Salvar Exercício
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 const ExerciseCard = ({ exercise, onUpdate, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [notes, setNotes] = useState(exercise.notes || "");
   
   const addSet = () => {
     const newSet: Set = {
@@ -99,21 +226,32 @@ const ExerciseCard = ({ exercise, onUpdate, onDelete }) => {
     };
     onUpdate({
       ...exercise,
-      sets: [...exercise.sets, newSet]
+      sets: [...exercise.sets, newSet],
+      notes
     });
   };
 
   const updateSet = (setId: string, updatedSet: Set) => {
     onUpdate({
       ...exercise,
-      sets: exercise.sets.map(s => s.id === setId ? updatedSet : s)
+      sets: exercise.sets.map(s => s.id === setId ? updatedSet : s),
+      notes
     });
   };
 
   const deleteSet = (setId: string) => {
     onUpdate({
       ...exercise,
-      sets: exercise.sets.filter(s => s.id !== setId)
+      sets: exercise.sets.filter(s => s.id !== setId),
+      notes
+    });
+  };
+
+  const handleNotesChange = (newNotes: string) => {
+    setNotes(newNotes);
+    onUpdate({
+      ...exercise,
+      notes: newNotes
     });
   };
 
@@ -178,6 +316,19 @@ const ExerciseCard = ({ exercise, onUpdate, onDelete }) => {
               ))}
             </div>
             
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Notas
+              </label>
+              <Textarea
+                value={notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                placeholder="Adicione notas sobre este exercício..."
+                className="min-h-[100px] bg-card"
+              />
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -203,12 +354,14 @@ const NewWorkout = () => {
   const [routineName, setRoutineName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCreateExercise, setShowCreateExercise] = useState(false);
 
-  const filteredExercises = exerciseLibrary.filter(exercise =>
+  const allExercises = [...exerciseLibrary, ...customExercises];
+  const filteredExercises = allExercises.filter(exercise =>
     exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddExercise = (exerciseInfo: ExerciseLibraryItem) => {
+  const handleAddExercise = (exerciseInfo: ExerciseLibraryItem | CustomExercise) => {
     const newExercise: Exercise = {
       id: Date.now().toString(),
       name: exerciseInfo.name,
@@ -220,7 +373,8 @@ const NewWorkout = () => {
       }],
       targetMuscles: exerciseInfo.targetMuscles,
       previousWeight: exerciseInfo.beginnerRange.min,
-      personalRecord: exerciseInfo.intermediateRange.max
+      personalRecord: exerciseInfo.intermediateRange.max,
+      notes: 'isCustom' in exerciseInfo ? exerciseInfo.notes : undefined
     };
 
     setExercises([...exercises, newExercise]);
@@ -256,7 +410,6 @@ const NewWorkout = () => {
       return;
     }
 
-    // Calculate summary statistics
     const totalWeight = exercises.reduce((sum, exercise) =>
       sum + exercise.sets.reduce((setSum, set) => setSum + (set.weight * set.reps), 0), 0);
 
@@ -338,6 +491,16 @@ const NewWorkout = () => {
                         </div>
                       </Button>
                     ))}
+                    {filteredExercises.length === 0 && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-workout"
+                        onClick={() => setShowCreateExercise(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Criar "{searchQuery}"
+                      </Button>
+                    )}
                   </Card>
                 )}
               </div>
@@ -353,6 +516,17 @@ const NewWorkout = () => {
           </Button>
         </div>
       </div>
+
+      {showCreateExercise && (
+        <CreateExerciseModal
+          query={searchQuery}
+          onSave={(exercise) => {
+            handleAddExercise(exercise);
+            setShowCreateExercise(false);
+          }}
+          onClose={() => setShowCreateExercise(false)}
+        />
+      )}
     </div>
   );
 };
