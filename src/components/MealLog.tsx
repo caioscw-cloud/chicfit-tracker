@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Plus, X, Edit2, Settings2, ArrowLeft } from "lucide-react";
@@ -21,6 +20,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FoodItem {
   id: string;
@@ -517,55 +522,57 @@ const MealLog = () => {
   }, [totals]);
 
   return (
-    <div className="animate-fade-up space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Registro de Refeições</h2>
-        <Button 
-          variant="outline" 
-          size="icon"
-          className="rounded-full"
-          onClick={() => setShowSettings(true)}
-        >
-          <Settings2 className="h-5 w-5" />
-        </Button>
-      </div>
+    <TooltipProvider>
+      <div className="animate-fade-up space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">Registro de Refeições</h2>
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="rounded-full"
+            onClick={() => setShowSettings(true)}
+          >
+            <Settings2 className="h-5 w-5" />
+          </Button>
+        </div>
 
-      <MacroDisplay totals={totals} goals={nutritionGoals} />
-      
-      <WaterTracker 
-        totals={totals}
-        goals={nutritionGoals}
-        onUpdate={setWaterIntake}
-      />
-
-      <div className="grid gap-4">
-        {meals.map((meal) => (
-          <MealSlot
-            key={meal.title}
-            meal={meal}
-            onAddFood={handleAddFood}
-            onEditFood={handleEditFood}
-            onDeleteFood={handleDeleteFood}
-          />
-        ))}
-      </div>
-
-      <AlertDialog open={showSettings} onOpenChange={setShowSettings}>
-        <NutritionGoalsSettings
+        <MacroDisplay totals={totals} goals={nutritionGoals} />
+        
+        <WaterTracker 
+          totals={totals}
           goals={nutritionGoals}
-          onUpdateGoals={setNutritionGoals}
-          onClose={() => setShowSettings(false)}
+          onUpdate={setWaterIntake}
         />
-      </AlertDialog>
 
-      {editingFood && (
-        <EditFoodModal
-          food={editingFood.food}
-          onSave={handleSaveEdit}
-          onClose={() => setEditingFood(null)}
-        />
-      )}
-    </div>
+        <div className="grid gap-4">
+          {meals.map((meal) => (
+            <MealSlot
+              key={meal.title}
+              meal={meal}
+              onAddFood={handleAddFood}
+              onEditFood={handleEditFood}
+              onDeleteFood={handleDeleteFood}
+            />
+          ))}
+        </div>
+
+        <AlertDialog open={showSettings} onOpenChange={setShowSettings}>
+          <NutritionGoalsSettings
+            goals={nutritionGoals}
+            onUpdateGoals={setNutritionGoals}
+            onClose={() => setShowSettings(false)}
+          />
+        </AlertDialog>
+
+        {editingFood && (
+          <EditFoodModal
+            food={editingFood.food}
+            onSave={handleSaveEdit}
+            onClose={() => setEditingFood(null)}
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
 
