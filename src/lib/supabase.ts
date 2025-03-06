@@ -12,7 +12,8 @@ const createMockClient = () => {
   
   // Create a more complete mock implementation that returns chainable methods
   const mockQueryBuilder = () => {
-    const response = { data: [], error: null };
+    const emptyResponse = { data: [], error: null };
+    const singleResponse = { data: null, error: null };
     
     // Create a chainable API for query methods
     const chainable = {
@@ -45,10 +46,20 @@ const createMockClient = () => {
       limit: () => chainable,
       order: () => chainable,
       range: () => chainable,
-      single: () => ({ ...response, data: null }),
-      maybeSingle: () => ({ ...response, data: null }),
-      then: (callback: any) => Promise.resolve(response).then(callback)
+      // These methods terminate the chain and should return a Promise
+      single: () => Promise.resolve(singleResponse),
+      maybeSingle: () => Promise.resolve(singleResponse),
+      // Important: Return a proper Promise instead of having a then method
+      then: undefined
     };
+    
+    // Add the ability to await on the chainable object directly
+    // This converts the chainable to a Promise when used with await
+    Object.defineProperty(chainable, Symbol.toStringTag, { value: 'Promise' });
+    Object.defineProperty(chainable, 'then', { 
+      value: (resolve: any) => Promise.resolve(emptyResponse).then(resolve),
+      enumerable: false 
+    });
     
     return chainable;
   };
@@ -90,7 +101,9 @@ export const checkSupabaseConnection = async () => {
   }
   
   try {
-    const { data, error } = await supabase.from('healthcheck').select('*').limit(1);
+    // Use Promise.resolve to ensure we're working with a proper Promise
+    const response = await Promise.resolve(supabase.from('healthcheck').select('*').limit(1));
+    const { data, error } = response;
     
     if (error) {
       console.error('Erro ao conectar com o Supabase:', error.message);
