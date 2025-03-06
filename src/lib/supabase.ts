@@ -11,7 +11,7 @@ const createMockClient = () => {
   console.warn('Using mock Supabase client. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
   
   // Create a more complete mock implementation that returns chainable methods
-  const mockQueryBuilder = () => {
+  const mockQueryBuilder = (tableName: string) => {
     const emptyResponse = { data: [], error: null };
     const singleResponse = { data: null, error: null };
     
@@ -49,18 +49,14 @@ const createMockClient = () => {
       // These methods terminate the chain and should return a Promise
       single: () => Promise.resolve(singleResponse),
       maybeSingle: () => Promise.resolve(singleResponse),
-      // Important: Return a proper Promise instead of having a then method
-      then: undefined
+      // Convert the chainable object to a proper promise that resolves with data and error properties
+      then: (resolve: any) => {
+        // When used directly as a Promise (with await), return the appropriate response object
+        return Promise.resolve(emptyResponse).then(resolve);
+      }
     };
     
-    // Add the ability to await on the chainable object directly
-    // This converts the chainable to a Promise when used with await
-    Object.defineProperty(chainable, Symbol.toStringTag, { value: 'Promise' });
-    Object.defineProperty(chainable, 'then', { 
-      value: (resolve: any) => Promise.resolve(emptyResponse).then(resolve),
-      enumerable: false 
-    });
-    
+    // Make the chainable object awaitable
     return chainable;
   };
 
@@ -73,7 +69,7 @@ const createMockClient = () => {
       signUp: async () => ({ data: null, error: new Error('Mock Supabase client cannot register users') }),
       signOut: async () => ({ error: null })
     },
-    from: () => mockQueryBuilder()
+    from: (tableName: string) => mockQueryBuilder(tableName)
   };
 };
 
@@ -101,9 +97,8 @@ export const checkSupabaseConnection = async () => {
   }
   
   try {
-    // Use Promise.resolve to ensure we're working with a proper Promise
-    const response = await Promise.resolve(supabase.from('healthcheck').select('*').limit(1));
-    const { data, error } = response;
+    // Attempt to connect to Supabase
+    const { data, error } = await supabase.from('healthcheck').select('*').limit(1);
     
     if (error) {
       console.error('Erro ao conectar com o Supabase:', error.message);
