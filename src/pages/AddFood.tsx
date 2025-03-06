@@ -96,6 +96,7 @@ const AddFood = () => {
 
     try {
       // Adicionar o alimento personalizado ao banco de dados
+      // Fix: Remove the 'id' property from the object we're passing to addCustomFood
       const newFood = await addCustomFood({
         name,
         calories: parseInt(calories),
@@ -103,7 +104,6 @@ const AddFood = () => {
         carbs: parseFloat(carbs),
         fats: parseFloat(fats),
         quantity: 100, // Valores base para 100g
-        id: "", // Será gerado pelo banco
       }, user.id);
 
       // Selecionar o alimento recém-criado
