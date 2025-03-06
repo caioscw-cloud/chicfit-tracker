@@ -3,8 +3,19 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { checkSupabaseConnection } from './lib/supabase.ts'
+import { toast } from '@/components/ui/use-toast'
 
-// Verify Supabase connection on app startup
+// Get the container element
+const container = document.getElementById("root");
+
+if (!container) {
+  throw new Error("No root element found. Cannot mount React app.");
+}
+
+// Create the React root and render the app
+createRoot(container).render(<App />);
+
+// Verify Supabase connection after rendering
 checkSupabaseConnection()
   .then(isConnected => {
     if (!isConnected) {
@@ -14,11 +25,3 @@ checkSupabaseConnection()
   .catch(error => {
     console.error('Failed to check Supabase connection:', error);
   });
-
-const container = document.getElementById("root");
-
-if (!container) {
-  throw new Error("No root element found. Cannot mount React app.");
-}
-
-createRoot(container).render(<App />);

@@ -1,6 +1,7 @@
 
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,14 +9,34 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const [isCheckingEnv, setIsCheckingEnv] = useState(true);
+  const [envMissing, setEnvMissing] = useState(false);
 
-  // Show loading state while we check if the user is authenticated
-  if (isLoading) {
+  useEffect(() => {
+    // Check if Supabase environment variables are set
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setEnvMissing(true);
+    }
+    
+    setIsCheckingEnv(false);
+  }, []);
+
+  // If we're still checking environment variables or loading auth state, show loading
+  if (isCheckingEnv || isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
       </div>
     );
+  }
+
+  // If environment variables are missing, bypass auth check and allow access
+  if (envMissing) {
+    console.warn('Supabase environment variables missing, bypassing authentication check');
+    return <>{children}</>;
   }
 
   // If the user is not authenticated, redirect to login
