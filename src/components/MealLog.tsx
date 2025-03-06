@@ -1,474 +1,201 @@
 
 import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Plus, X, Edit2, Settings2, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
+import { Settings2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Slider } from "@/components/ui/slider";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogFooter,
-  AlertDialogDescription,
-} from "@/components/ui/alert-dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  fetchMeals, 
+  fetchNutritionGoals, 
+  saveNutritionGoals, 
+  saveMeal, 
+  saveWaterIntake, 
+  fetchWaterIntake,
+  Meal,
+  FoodItem,
+  NutritionGoals
+} from "@/services/mealService";
 
-interface FoodItem {
-  id: string;
-  name: string;
-  quantity: number;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
+// Componentes extraídos
+import MacroDisplay from "./nutrition/MacroDisplay";
+import WaterTracker from "./nutrition/WaterTracker";
+import NutritionGoalsSettings from "./nutrition/NutritionGoalsSettings";
+import MealSlot from "./nutrition/MealSlot";
+import EditFoodModal from "./nutrition/EditFoodModal";
 
-interface Meal {
-  title: string;
-  time: string;
-  foods: FoodItem[];
-}
+const DEFAULT_MEALS: Meal[] = [
+  { title: "Café da Manhã", time: "07:00", foods: [] },
+  { title: "Lanche da Manhã", time: "10:00", foods: [] },
+  { title: "Almoço", time: "13:00", foods: [] },
+  { title: "Lanche da Tarde", time: "16:00", foods: [] },
+  { title: "Jantar", time: "19:00", foods: [] },
+  { title: "Ceia", time: "21:00", foods: [] }
+];
 
-interface NutritionGoals {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  waterIntake: number;
-}
-
-const MacroProgressBar = ({ current, goal, color }) => {
-  const percentage = Math.min((current / goal) * 100, 100);
-  
-  return (
-    <div className="h-2 bg-muted rounded-full overflow-hidden">
-      <div 
-        className={`h-full ${color}`}
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  );
-};
-
-const MacroDisplay = ({ totals, goals }) => (
-  <Card className="p-6 mb-6 bg-card">
-    <div className="grid gap-4">
-      <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-sm text-muted-foreground">Calorias Diárias</p>
-          <p className="text-xs text-muted-foreground">{totals.calories} / {goals.calories} kcal</p>
-        </div>
-        <MacroProgressBar
-          current={totals.calories}
-          goal={goals.calories}
-          color="bg-diet"
-        />
-      </div>
-      
-      <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-sm text-muted-foreground">Proteínas</p>
-          <p className="text-xs text-muted-foreground">{totals.protein}g / {goals.protein}g</p>
-        </div>
-        <MacroProgressBar
-          current={totals.protein}
-          goal={goals.protein}
-          color="bg-red-500"
-        />
-      </div>
-      
-      <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-sm text-muted-foreground">Carboidratos</p>
-          <p className="text-xs text-muted-foreground">{totals.carbs}g / {goals.carbs}g</p>
-        </div>
-        <MacroProgressBar
-          current={totals.carbs}
-          goal={goals.carbs}
-          color="bg-yellow-500"
-        />
-      </div>
-      
-      <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-sm text-muted-foreground">Gorduras</p>
-          <p className="text-xs text-muted-foreground">{totals.fats}g / {goals.fats}g</p>
-        </div>
-        <MacroProgressBar
-          current={totals.fats}
-          goal={goals.fats}
-          color="bg-blue-500"
-        />
-      </div>
-
-      <div>
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-sm text-muted-foreground">Água</p>
-          <p className="text-xs text-muted-foreground">{totals.waterIntake}ml / {goals.waterIntake}ml</p>
-        </div>
-        <MacroProgressBar
-          current={totals.waterIntake}
-          goal={goals.waterIntake}
-          color="bg-cyan-500"
-        />
-      </div>
-    </div>
-  </Card>
-);
-
-const NutritionGoalsSettings = ({ goals, onUpdateGoals, onClose }) => {
-  const [localGoals, setLocalGoals] = useState<NutritionGoals>(goals);
-  const { toast } = useToast();
-
-  // Função para calcular calorias com base nos macronutrientes
-  const calculateCalories = (protein: number, carbs: number, fats: number) => {
-    // 1g de proteína = 4 calorias
-    // 1g de carboidrato = 4 calorias
-    // 1g de gordura = 9 calorias
-    return (protein * 4) + (carbs * 4) + (fats * 9);
-  };
-
-  // Atualiza as calorias quando os macronutrientes mudam
-  useEffect(() => {
-    const calculatedCalories = calculateCalories(
-      localGoals.protein,
-      localGoals.carbs,
-      localGoals.fats
-    );
-    setLocalGoals(prevGoals => ({
-      ...prevGoals,
-      calories: calculatedCalories
-    }));
-  }, [localGoals.protein, localGoals.carbs, localGoals.fats]);
-
-  const handleSave = () => {
-    onUpdateGoals(localGoals);
-    toast({
-      title: "Metas atualizadas",
-      description: "Suas metas nutricionais foram atualizadas com sucesso.",
-    });
-    onClose();
-  };
-
-  return (
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Metas Nutricionais</AlertDialogTitle>
-        <AlertDialogDescription>
-          Configure suas metas diárias de macronutrientes. As calorias serão calculadas automaticamente.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      
-      <Tabs defaultValue="macros">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="macros">Macronutrientes</TabsTrigger>
-          <TabsTrigger value="water">Água</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="macros" className="space-y-4">
-          <div className="mb-6">
-            <p className="text-lg font-medium mb-2">Calorias Totais: {localGoals.calories} kcal</p>
-            <p className="text-sm text-muted-foreground">
-              Calculado automaticamente com base nos macronutrientes (P × 4 + C × 4 + G × 9)
-            </p>
-          </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground">
-              Proteínas: {localGoals.protein}g ({(localGoals.protein * 4)} kcal)
-            </label>
-            <Slider
-              value={[localGoals.protein]}
-              onValueChange={([protein]) => setLocalGoals(prev => ({ ...prev, protein }))}
-              max={1000}
-              step={5}
-              className="mt-2"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground">
-              Carboidratos: {localGoals.carbs}g ({(localGoals.carbs * 4)} kcal)
-            </label>
-            <Slider
-              value={[localGoals.carbs]}
-              onValueChange={([carbs]) => setLocalGoals(prev => ({ ...prev, carbs }))}
-              max={1000}
-              step={5}
-              className="mt-2"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground">
-              Gorduras: {localGoals.fats}g ({(localGoals.fats * 9)} kcal)
-            </label>
-            <Slider
-              value={[localGoals.fats]}
-              onValueChange={([fats]) => setLocalGoals(prev => ({ ...prev, fats }))}
-              max={1000}
-              step={5}
-              className="mt-2"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="water" className="space-y-4">
-          <div>
-            <label className="text-sm text-muted-foreground">
-              Meta de Água: {localGoals.waterIntake}ml
-            </label>
-            <Slider
-              value={[localGoals.waterIntake]}
-              onValueChange={([waterIntake]) => setLocalGoals(prev => ({ ...prev, waterIntake }))}
-              max={5000}
-              step={100}
-              className="mt-2"
-            />
-          </div>
-
-          <div className="text-sm text-muted-foreground">
-            <p>Recomendações:</p>
-            <ul className="list-disc list-inside mt-2">
-              <li>Homens: 3.7L por dia</li>
-              <li>Mulheres: 2.7L por dia</li>
-              <li>Atletas: +500-1000ml por hora de treino</li>
-            </ul>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      <AlertDialogFooter>
-        <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-        <Button onClick={handleSave}>Salvar Alterações</Button>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  );
-};
-
-const WaterTracker = ({ totals, goals, onUpdate }) => {
-  const addWater = (amount: number) => {
-    onUpdate(totals.waterIntake + amount);
-  };
-
-  return (
-    <Card className="p-4 bg-card mb-6">
-      <h3 className="text-lg font-medium mb-3">Consumo de Água</h3>
-      <MacroProgressBar
-        current={totals.waterIntake}
-        goal={goals.waterIntake}
-        color="bg-cyan-500"
-      />
-      <div className="mt-4 flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => addWater(200)}
-        >
-          +200ml
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => addWater(300)}
-        >
-          +300ml
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => addWater(500)}
-        >
-          +500ml
-        </Button>
-      </div>
-    </Card>
-  );
-};
-
-const FoodItemCard = ({ food, onEdit, onDelete }) => (
-  <Card className="p-3 bg-muted hover:bg-card-hover transition-colors cursor-pointer">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="font-medium">{food.name}</p>
-        <p className="text-sm text-muted-foreground">
-          {food.quantity}g • {food.calories} cal • {food.protein}g prot
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="h-8 w-8"
-          onClick={onEdit}
-        >
-          <Edit2 className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="h-8 w-8"
-          onClick={onDelete}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  </Card>
-);
-
-const MealSlot = ({ meal, onAddFood, onEditFood, onDeleteFood }) => {
-  const totalCalories = meal.foods.reduce((sum, food) => sum + food.calories, 0);
-  const totalProtein = meal.foods.reduce((sum, food) => sum + food.protein, 0);
-
-  return (
-    <Card className="p-4 bg-card">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <p className="text-sm text-muted-foreground">{meal.time}</p>
-          <h3 className="text-lg font-medium">{meal.title}</h3>
-          {meal.foods.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {totalCalories} cal • {totalProtein}g proteína
-            </p>
-          )}
-        </div>
-        {meal.foods.length > 0 && (
-          <span className="px-2 py-1 bg-diet/10 text-diet rounded-full text-xs">
-            Registrado
-          </span>
-        )}
-      </div>
-
-      {meal.foods.length > 0 && (
-        <div className="space-y-2 mb-3">
-          {meal.foods.map((food) => (
-            <FoodItemCard
-              key={food.id}
-              food={food}
-              onEdit={() => onEditFood(meal.title, food)}
-              onDelete={() => onDeleteFood(meal.title, food.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full"
-        onClick={() => onAddFood(meal.title)}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Adicionar Alimento
-      </Button>
-    </Card>
-  );
-};
-
-const EditFoodModal = ({ food, onSave, onClose }) => {
-  const [quantity, setQuantity] = useState(food.quantity.toString());
-  const { toast } = useToast();
-
-  const handleSave = () => {
-    const newQuantity = parseInt(quantity);
-    if (isNaN(newQuantity) || newQuantity <= 0) {
-      toast({
-        title: "Quantidade inválida",
-        description: "Por favor, insira uma quantidade válida.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    onSave({ ...food, quantity: newQuantity });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-semibold">{food.name}</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-muted-foreground">Quantidade (g)</label>
-            <Input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Calorias</p>
-              <p className="font-medium">{food.calories} kcal</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Proteínas</p>
-              <p className="font-medium">{food.protein}g</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Carboidratos</p>
-              <p className="font-medium">{food.carbs}g</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Gorduras</p>
-              <p className="font-medium">{food.fats}g</p>
-            </div>
-          </div>
-          <Button className="w-full" onClick={handleSave}>
-            Salvar Alterações
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
+const DEFAULT_NUTRITION_GOALS: NutritionGoals = {
+  calories: 2500,
+  protein: 180,
+  carbs: 300,
+  fats: 70,
+  waterIntake: 3700
 };
 
 const MealLog = () => {
   const navigate = useNavigate();
-  const [meals, setMeals] = useState<Meal[]>([
-    { title: "Café da Manhã", time: "07:00", foods: [] },
-    { title: "Lanche da Manhã", time: "10:00", foods: [] },
-    { title: "Almoço", time: "13:00", foods: [] },
-    { title: "Lanche da Tarde", time: "16:00", foods: [] },
-    { title: "Jantar", time: "19:00", foods: [] },
-    { title: "Ceia", time: "21:00", foods: [] }
-  ]);
-
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const [showSettings, setShowSettings] = useState(false);
-  const [nutritionGoals, setNutritionGoals] = useState<NutritionGoals>({
-    calories: 2500,
-    protein: 180,
-    carbs: 300,
-    fats: 70,
-    waterIntake: 3700
+  const [editingFood, setEditingFood] = useState<{ mealTitle: string; food: FoodItem } | null>(null);
+  const [currentDate, setCurrentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // Verificar se o usuário está autenticado
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Autenticação necessária",
+        description: "Faça login para acessar o registro de refeições.",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [user, navigate, toast]);
+
+  // Buscar as refeições do usuário
+  const { 
+    data: meals = DEFAULT_MEALS,
+    isLoading: isLoadingMeals 
+  } = useQuery({
+    queryKey: ['meals', user?.id, currentDate],
+    queryFn: () => user ? fetchMeals(user.id, currentDate) : Promise.resolve([]),
+    enabled: !!user,
   });
 
-  const [waterIntake, setWaterIntake] = useState(0);
-  const [editingFood, setEditingFood] = useState<{ mealTitle: string; food: FoodItem } | null>(null);
+  // Buscar as metas nutricionais do usuário
+  const { 
+    data: nutritionGoals = DEFAULT_NUTRITION_GOALS,
+    isLoading: isLoadingGoals
+  } = useQuery({
+    queryKey: ['nutritionGoals', user?.id],
+    queryFn: () => user ? fetchNutritionGoals(user.id) : Promise.resolve(DEFAULT_NUTRITION_GOALS),
+    enabled: !!user,
+  });
+
+  // Buscar o consumo de água do usuário
+  const { 
+    data: waterIntake = 0
+  } = useQuery({
+    queryKey: ['waterIntake', user?.id, currentDate],
+    queryFn: () => user ? fetchWaterIntake(user.id, currentDate) : Promise.resolve(0),
+    enabled: !!user,
+  });
+
+  // Mutation para salvar metas nutricionais
+  const saveNutritionMutation = useMutation({
+    mutationFn: (goals: NutritionGoals) => {
+      if (!user) throw new Error("Usuário não autenticado");
+      return saveNutritionGoals({ ...goals, userId: user.id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutritionGoals', user?.id] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar metas",
+        description: String(error),
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para salvar consumo de água
+  const saveWaterMutation = useMutation({
+    mutationFn: (amount: number) => {
+      if (!user) throw new Error("Usuário não autenticado");
+      return saveWaterIntake(user.id, amount, currentDate);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waterIntake', user?.id, currentDate] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar consumo de água",
+        description: String(error),
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para salvar refeição
+  const saveMealMutation = useMutation({
+    mutationFn: (updatedMeal: Meal) => {
+      if (!user) throw new Error("Usuário não autenticado");
+      return saveMeal({ ...updatedMeal, userId: user.id, date: currentDate });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meals', user?.id, currentDate] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao salvar refeição",
+        description: String(error),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateNutritionGoals = (goals: NutritionGoals) => {
+    saveNutritionMutation.mutate(goals);
+  };
+
+  const handleUpdateWaterIntake = (amount: number) => {
+    saveWaterMutation.mutate(amount);
+  };
+
+  const handleAddFood = (mealTitle: string) => {
+    // Salvar o título da refeição no estado para usar quando o usuário voltar
+    localStorage.setItem('currentMealTitle', mealTitle);
+    navigate('/add-food');
+  };
+
+  const handleEditFood = (mealTitle: string, food: FoodItem) => {
+    setEditingFood({ mealTitle, food });
+  };
+
+  const handleDeleteFood = (mealTitle: string, foodId: string) => {
+    const meal = meals.find(m => m.title === mealTitle);
+    if (!meal) return;
+
+    const updatedMeal: Meal = {
+      ...meal,
+      foods: meal.foods.filter(f => f.id !== foodId)
+    };
+
+    saveMealMutation.mutate(updatedMeal);
+  };
+
+  const handleSaveEdit = (updatedFood: FoodItem) => {
+    if (!editingFood) return;
+
+    const meal = meals.find(m => m.title === editingFood.mealTitle);
+    if (!meal) return;
+
+    const updatedMeal: Meal = {
+      ...meal,
+      foods: meal.foods.map(food =>
+        food.id === updatedFood.id ? updatedFood : food
+      )
+    };
+
+    saveMealMutation.mutate(updatedMeal);
+    setEditingFood(null);
+  };
 
   const totals = {
     calories: meals.reduce((sum, meal) => 
@@ -482,64 +209,67 @@ const MealLog = () => {
     waterIntake
   };
 
-  const handleAddFood = (mealTitle: string) => {
-    navigate('/add-food');
-  };
+  // Verificar alertas nutricionais
+  useEffect(() => {
+    const checkNutritionGoals = () => {
+      const caloriePercentage = (totals.calories / nutritionGoals.calories) * 100;
+      const proteinPercentage = (totals.protein / nutritionGoals.protein) * 100;
 
-  const handleEditFood = (mealTitle: string, food: FoodItem) => {
-    setEditingFood({ mealTitle, food });
-  };
+      if (caloriePercentage >= 90) {
+        toast({
+          title: "Atenção às calorias",
+          description: "Você está próximo do seu limite calórico diário.",
+          variant: "default"
+        });
+      }
 
-  const handleDeleteFood = (mealTitle: string, foodId: string) => {
-    setMeals(meals.map(meal => 
-      meal.title === mealTitle
-        ? { ...meal, foods: meal.foods.filter(f => f.id !== foodId) }
-        : meal
-    ));
-  };
+      if (proteinPercentage < 50 && totals.calories > nutritionGoals.calories / 2) {
+        toast({
+          title: "Consumo de proteína baixo",
+          description: "Considere adicionar mais proteína às suas refeições.",
+          variant: "default"
+        });
+      }
+    };
 
-  const handleSaveEdit = (updatedFood: FoodItem) => {
-    if (!editingFood) return;
-
-    setMeals(meals.map(meal =>
-      meal.title === editingFood.mealTitle
-        ? {
-            ...meal,
-            foods: meal.foods.map(food =>
-              food.id === updatedFood.id ? updatedFood : food
-            )
-          }
-        : meal
-    ));
-    setEditingFood(null);
-  };
-
-  const { toast } = useToast();
-
-  const checkNutritionGoals = () => {
-    const caloriePercentage = (totals.calories / nutritionGoals.calories) * 100;
-    const proteinPercentage = (totals.protein / nutritionGoals.protein) * 100;
-
-    if (caloriePercentage >= 90) {
-      toast({
-        title: "Atenção às calorias",
-        description: "Você está próximo do seu limite calórico diário.",
-        variant: "default"
-      });
-    }
-
-    if (proteinPercentage < 50 && totals.calories > nutritionGoals.calories / 2) {
-      toast({
-        title: "Consumo de proteína baixo",
-        description: "Considere adicionar mais proteína às suas refeições.",
-        variant: "default"
-      });
-    }
-  };
-
-  React.useEffect(() => {
     checkNutritionGoals();
-  }, [totals]);
+  }, [totals, nutritionGoals, toast]);
+
+  // Efeito para lidar com o retorno da página de adicionar alimentos
+  useEffect(() => {
+    const handleAddFoodReturn = () => {
+      const newFood = localStorage.getItem('newFood');
+      const mealTitle = localStorage.getItem('currentMealTitle');
+      
+      if (newFood && mealTitle) {
+        try {
+          const foodData = JSON.parse(newFood) as Omit<FoodItem, 'id'>;
+          const meal = meals.find(m => m.title === mealTitle);
+          
+          if (meal) {
+            const updatedMeal: Meal = {
+              ...meal,
+              foods: [...meal.foods, { ...foodData, id: uuidv4() }]
+            };
+            
+            saveMealMutation.mutate(updatedMeal);
+          }
+          
+          // Limpar o localStorage após usar
+          localStorage.removeItem('newFood');
+          localStorage.removeItem('currentMealTitle');
+        } catch (error) {
+          console.error("Erro ao adicionar novo alimento:", error);
+        }
+      }
+    };
+
+    handleAddFoodReturn();
+  }, [meals]);
+
+  if (isLoadingMeals || isLoadingGoals) {
+    return <div className="p-4 text-center">Carregando...</div>;
+  }
 
   return (
     <TooltipProvider>
@@ -561,7 +291,7 @@ const MealLog = () => {
         <WaterTracker 
           totals={totals}
           goals={nutritionGoals}
-          onUpdate={setWaterIntake}
+          onUpdate={handleUpdateWaterIntake}
         />
 
         <div className="grid gap-4">
@@ -579,7 +309,7 @@ const MealLog = () => {
         <AlertDialog open={showSettings} onOpenChange={setShowSettings}>
           <NutritionGoalsSettings
             goals={nutritionGoals}
-            onUpdateGoals={setNutritionGoals}
+            onUpdateGoals={handleUpdateNutritionGoals}
             onClose={() => setShowSettings(false)}
           />
         </AlertDialog>
