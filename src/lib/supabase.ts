@@ -6,88 +6,107 @@ import { toast } from '@/components/ui/use-toast';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Local storage keys for credentials
+const SUPABASE_URL_KEY = 'supabase_url';
+const SUPABASE_ANON_KEY = 'supabase_anon_key';
+
+// Try to get credentials from localStorage if not in env vars
+const getStoredCredentials = () => {
+  if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem(SUPABASE_URL_KEY);
+    const storedKey = localStorage.getItem(SUPABASE_ANON_KEY);
+    return { 
+      url: storedUrl || supabaseUrl, 
+      key: storedKey || supabaseAnonKey 
+    };
+  }
+  return { url: supabaseUrl, key: supabaseAnonKey };
+};
+
+// Save credentials to localStorage
+export const saveCredentials = (url: string, key: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(SUPABASE_URL_KEY, url);
+    localStorage.setItem(SUPABASE_ANON_KEY, key);
+    // Reload the page to re-initialize Supabase with new credentials
+    window.location.reload();
+  }
+};
+
 // Create a mock Supabase client for development when credentials are missing
 const createMockClient = () => {
-  console.warn('Using mock Supabase client. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  console.warn('Using mock Supabase client. Please set Supabase credentials in the settings page.');
   
-  // Create a more complete mock implementation that returns chainable methods
-  const mockQueryBuilder = (tableName: string) => {
-    const emptyResponse = { data: [], error: null };
-    const singleResponse = { data: null, error: null };
-    
-    // Create a chainable API for query methods
-    const chainable = {
-      select: () => chainable,
-      insert: () => chainable,
-      update: () => chainable,
-      delete: () => chainable,
-      eq: () => chainable,
-      neq: () => chainable,
-      gt: () => chainable,
-      lt: () => chainable,
-      gte: () => chainable,
-      lte: () => chainable,
-      like: () => chainable,
-      ilike: () => chainable,
-      is: () => chainable,
-      in: () => chainable,
-      contains: () => chainable,
-      containedBy: () => chainable,
-      rangeLt: () => chainable,
-      rangeGt: () => chainable,
-      rangeGte: () => chainable,
-      rangeLte: () => chainable,
-      overlaps: () => chainable,
-      textSearch: () => chainable,
-      filter: () => chainable,
-      match: () => chainable,
-      or: () => chainable,
-      and: () => chainable,
-      limit: () => chainable,
-      order: () => chainable,
-      range: () => chainable,
-      // These methods terminate the chain and should return a Promise
-      single: () => Promise.resolve(singleResponse),
-      maybeSingle: () => Promise.resolve(singleResponse),
-      // Convert the chainable object to a proper promise that resolves with data and error properties
-      then: (resolve: any) => {
-        // When used directly as a Promise (with await), return the appropriate response object
-        return Promise.resolve(emptyResponse).then(resolve);
-      }
-    };
-    
-    // Make the chainable object awaitable
-    return chainable;
+  // Mock response for all operations
+  const mockResponse = (data = null) => {
+    return Promise.resolve({ data, error: null });
+  };
+  
+  // Mock single response
+  const mockSingleResponse = () => {
+    return Promise.resolve({ data: null, error: null });
   };
 
-  // Return a mock client with chainable methods
+  // Create a more functional mock client
   return {
     auth: {
-      getSession: async () => ({ data: { session: null }, error: null }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: async () => ({ data: null, error: new Error('Mock Supabase client cannot authenticate') }),
-      signUp: async () => ({ data: null, error: new Error('Mock Supabase client cannot register users') }),
-      signOut: async () => ({ error: null })
+      signInWithPassword: () => Promise.resolve({ data: null, error: new Error('Mock Supabase client cannot authenticate') }),
+      signUp: () => Promise.resolve({ data: null, error: new Error('Mock Supabase client cannot register users') }),
+      signOut: () => Promise.resolve({ error: null })
     },
-    from: (tableName: string) => mockQueryBuilder(tableName)
+    from: (tableName: string) => {
+      return {
+        select: () => ({ 
+          eq: () => ({
+            eq: () => mockResponse([]),
+            single: () => mockSingleResponse(),
+            limit: () => mockResponse([])
+          }),
+          single: () => mockSingleResponse(),
+          limit: () => mockResponse([]),
+          ilike: () => ({ limit: () => mockResponse([]) })
+        }),
+        insert: () => ({
+          select: () => mockResponse([])
+        }),
+        update: () => ({
+          eq: () => ({ select: () => mockResponse([]) })
+        }),
+        delete: () => ({
+          eq: () => mockResponse()
+        })
+      };
+    }
   };
 };
 
+// Initialize Supabase client with credentials from env or localStorage
+export const initializeSupabase = () => {
+  const credentials = getStoredCredentials();
+  
+  if (credentials.url && credentials.key) {
+    return createClient(credentials.url, credentials.key);
+  }
+  
+  return createMockClient();
+};
+
 // Create the Supabase client
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createMockClient();
+export const supabase = initializeSupabase();
 
 // Function to check if the Supabase connection is working
 export const checkSupabaseConnection = async () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase URL e Anon Key são obrigatórios. Verifique suas variáveis de ambiente.');
+  const credentials = getStoredCredentials();
+  if (!credentials.url || !credentials.key) {
+    console.error('Supabase URL e Anon Key são obrigatórios. Configure-os nas configurações.');
     
     // Show toast notification to the user
     setTimeout(() => {
       toast({
-        title: "Erro de configuração",
-        description: "As credenciais do Supabase não foram configuradas. O aplicativo funcionará em modo limitado.",
+        title: "Configuração necessária",
+        description: "As credenciais do Supabase não foram configuradas. Configure-as nas configurações.",
         variant: "destructive",
         duration: 5000,
       });
@@ -97,11 +116,17 @@ export const checkSupabaseConnection = async () => {
   }
   
   try {
-    // Attempt to connect to Supabase
-    const { data, error } = await supabase.from('healthcheck').select('*').limit(1);
+    // Try a simple query to check connection
+    const { error } = await supabase.from('healthcheck').select('*').limit(1);
     
     if (error) {
       console.error('Erro ao conectar com o Supabase:', error.message);
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao Supabase. Verifique suas credenciais.",
+        variant: "destructive",
+        duration: 5000,
+      });
       return false;
     }
     
@@ -111,4 +136,10 @@ export const checkSupabaseConnection = async () => {
     console.error('Exceção ao verificar conexão com Supabase:', error);
     return false;
   }
+};
+
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  const credentials = getStoredCredentials();
+  return !!(credentials.url && credentials.key);
 };

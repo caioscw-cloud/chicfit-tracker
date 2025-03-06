@@ -2,6 +2,8 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import SupabaseSettings from './SupabaseSettings';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,23 +11,16 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
-  const [isCheckingEnv, setIsCheckingEnv] = useState(true);
-  const [envMissing, setEnvMissing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // Check if Supabase environment variables are set
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      setEnvMissing(true);
-    }
-    
-    setIsCheckingEnv(false);
+    // Check if Supabase is configured
+    const configured = isSupabaseConfigured();
+    setShowSettings(!configured);
   }, []);
 
-  // If we're still checking environment variables or loading auth state, show loading
-  if (isCheckingEnv || isLoading) {
+  // If we're still loading auth state, show loading
+  if (isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
@@ -33,18 +28,31 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // If environment variables are missing, bypass auth check and allow access
-  if (envMissing) {
-    console.warn('Supabase environment variables missing, bypassing authentication check');
-    return <>{children}</>;
+  // If Supabase is not configured, show settings screen
+  if (showSettings) {
+    return (
+      <div className="min-h-screen p-4 flex flex-col items-center justify-center bg-background">
+        <h1 className="text-2xl font-bold mb-8">Configuração necessária</h1>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">
+          Para utilizar todos os recursos do aplicativo, configure suas credenciais do Supabase abaixo.
+        </p>
+        <SupabaseSettings />
+        <button
+          onClick={() => setShowSettings(false)}
+          className="mt-8 text-sm text-muted-foreground hover:text-foreground"
+        >
+          Continuar sem configurar (funcionalidade limitada)
+        </button>
+      </div>
+    );
   }
 
-  // If the user is not authenticated, redirect to login
-  if (!user) {
+  // If the user is not authenticated and Supabase is configured, redirect to login
+  if (!user && isSupabaseConfigured()) {
     return <Navigate to="/login" replace />;
   }
 
-  // If the user is authenticated, render the children components
+  // If the user is authenticated or we're in mock mode, render the children components
   return <>{children}</>;
 };
 
