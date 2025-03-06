@@ -10,7 +10,50 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const createMockClient = () => {
   console.warn('Using mock Supabase client. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
   
-  // Return a mock client with dummy methods
+  // Create a more complete mock implementation that returns chainable methods
+  const mockQueryBuilder = () => {
+    const response = { data: [], error: null };
+    
+    // Create a chainable API for query methods
+    const chainable = {
+      select: () => chainable,
+      insert: () => chainable,
+      update: () => chainable,
+      delete: () => chainable,
+      eq: () => chainable,
+      neq: () => chainable,
+      gt: () => chainable,
+      lt: () => chainable,
+      gte: () => chainable,
+      lte: () => chainable,
+      like: () => chainable,
+      ilike: () => chainable,
+      is: () => chainable,
+      in: () => chainable,
+      contains: () => chainable,
+      containedBy: () => chainable,
+      rangeLt: () => chainable,
+      rangeGt: () => chainable,
+      rangeGte: () => chainable,
+      rangeLte: () => chainable,
+      overlaps: () => chainable,
+      textSearch: () => chainable,
+      filter: () => chainable,
+      match: () => chainable,
+      or: () => chainable,
+      and: () => chainable,
+      limit: () => chainable,
+      order: () => chainable,
+      range: () => chainable,
+      single: () => ({ ...response, data: null }),
+      maybeSingle: () => ({ ...response, data: null }),
+      then: (callback: any) => Promise.resolve(response).then(callback)
+    };
+    
+    return chainable;
+  };
+
+  // Return a mock client with chainable methods
   return {
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),
@@ -19,12 +62,7 @@ const createMockClient = () => {
       signUp: async () => ({ data: null, error: new Error('Mock Supabase client cannot register users') }),
       signOut: async () => ({ error: null })
     },
-    from: () => ({
-      select: () => ({ limit: () => ({ data: [], error: null }) }),
-      insert: () => ({ data: null, error: null }),
-      update: () => ({ data: null, error: null }),
-      delete: () => ({ data: null, error: null }),
-    })
+    from: () => mockQueryBuilder()
   };
 };
 
