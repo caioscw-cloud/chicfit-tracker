@@ -19,11 +19,11 @@ const TabNavigation = ({ activeTab, onChange }: TabNavigationProps) => {
           <span className="ml-2 text-xs">Treino</span>
         </TabsTrigger>
         <TabsTrigger
-          value="meal"
+          value="diet"
           className="data-[state=active]:bg-diet data-[state=active]:text-black rounded-full transition-all duration-300"
         >
           <Utensils className="w-5 h-5" />
-          <span className="ml-2 text-xs">Refeições</span>
+          <span className="ml-2 text-xs">Dieta</span>
         </TabsTrigger>
         <TabsTrigger
           value="profile"

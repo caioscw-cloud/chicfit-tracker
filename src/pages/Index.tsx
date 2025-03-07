@@ -2,9 +2,9 @@
 import { useState } from "react";
 import TabNavigation from "@/components/TabNavigation";
 import WorkoutLog from "@/components/WorkoutLog";
-import MealLog from "@/components/MealLog";
 import ProfileView from "@/components/ProfileView";
 import CommunityView from "@/components/CommunityView";
+import Diet from "@/pages/Diet";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("workout");
@@ -13,8 +13,8 @@ const Index = () => {
     switch (activeTab) {
       case "workout":
         return <WorkoutLog />;
-      case "meal":
-        return <MealLog />;
+      case "diet":
+        return <Diet />;
       case "profile":
         return <ProfileView />;
       case "community":
