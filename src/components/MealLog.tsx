@@ -73,7 +73,7 @@ const MealLog = () => {
     isLoading: isLoadingMeals 
   } = useQuery({
     queryKey: ['meals', user?.id, currentDate],
-    queryFn: () => user ? fetchMeals(user.id, currentDate) : Promise.resolve([]),
+    queryFn: () => user ? fetchMeals(user.id, currentDate) : Promise.resolve(DEFAULT_MEALS),
     enabled: !!user,
   });
 
@@ -104,6 +104,10 @@ const MealLog = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nutritionGoals', user?.id] });
+      toast({
+        title: "Metas atualizadas",
+        description: "Suas metas nutricionais foram atualizadas com sucesso.",
+      });
     },
     onError: (error) => {
       toast({
@@ -122,6 +126,10 @@ const MealLog = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['waterIntake', user?.id, currentDate] });
+      toast({
+        title: "Água registrada",
+        description: "Seu consumo de água foi atualizado.",
+      });
     },
     onError: (error) => {
       toast({
@@ -140,6 +148,10 @@ const MealLog = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meals', user?.id, currentDate] });
+      toast({
+        title: "Refeição atualizada",
+        description: "Sua refeição foi atualizada com sucesso.",
+      });
     },
     onError: (error) => {
       toast({
@@ -197,6 +209,7 @@ const MealLog = () => {
     setEditingFood(null);
   };
 
+  // Calcular os valores nutricionais totais
   const totals = {
     calories: meals.reduce((sum, meal) => 
       sum + meal.foods.reduce((mealSum, food) => mealSum + food.calories, 0), 0),
@@ -212,6 +225,8 @@ const MealLog = () => {
   // Verificar alertas nutricionais
   useEffect(() => {
     const checkNutritionGoals = () => {
+      if (!nutritionGoals) return;
+      
       const caloriePercentage = (totals.calories / nutritionGoals.calories) * 100;
       const proteinPercentage = (totals.protein / nutritionGoals.protein) * 100;
 
@@ -265,7 +280,7 @@ const MealLog = () => {
     };
 
     handleAddFoodReturn();
-  }, [meals]);
+  }, [meals, saveMealMutation]);
 
   if (isLoadingMeals || isLoadingGoals) {
     return <div className="p-4 text-center">Carregando...</div>;
