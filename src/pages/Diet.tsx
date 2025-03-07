@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import AddFoodModal from "@/components/nutrition/AddFoodModal";
 
 interface NutritionGoals {
   calories: number;
@@ -143,7 +144,7 @@ const NutritionGoalsSettings = ({
             <Slider
               value={[localGoals.protein]}
               onValueChange={([protein]) => setLocalGoals(prev => ({ ...prev, protein }))}
-              max={500}
+              max={1000}
               step={5}
               className="mt-2"
             />
@@ -156,7 +157,7 @@ const NutritionGoalsSettings = ({
             <Slider
               value={[localGoals.carbs]}
               onValueChange={([carbs]) => setLocalGoals(prev => ({ ...prev, carbs }))}
-              max={500}
+              max={1000}
               step={5}
               className="mt-2"
             />
@@ -169,7 +170,7 @@ const NutritionGoalsSettings = ({
             <Slider
               value={[localGoals.fats]}
               onValueChange={([fats]) => setLocalGoals(prev => ({ ...prev, fats }))}
-              max={200}
+              max={1000}
               step={5}
               className="mt-2"
             />
@@ -329,6 +330,8 @@ const Diet = () => {
   const [nutritionGoals, setNutritionGoals] = useState<NutritionGoals>(DEFAULT_GOALS);
   const [meals, setMeals] = useState<Meal[]>(DEFAULT_MEALS);
   const [waterIntake, setWaterIntake] = useState(0);
+  const [addFoodModalOpen, setAddFoodModalOpen] = useState(false);
+  const [selectedMealTitle, setSelectedMealTitle] = useState<string | null>(null);
 
   // Check if user is logged in
   React.useEffect(() => {
@@ -352,12 +355,23 @@ const Diet = () => {
     setWaterIntake(prev => prev + amount);
   };
 
+  // Open add food modal
+  const handleOpenAddFoodModal = (mealTitle: string) => {
+    setSelectedMealTitle(mealTitle);
+    setAddFoodModalOpen(true);
+  };
+
   // Add food to a meal
-  const handleAddFood = (mealTitle: string) => {
-    toast({
-      title: "Funcionalidade em desenvolvimento",
-      description: "A adição de alimentos será implementada em breve.",
-    });
+  const handleAddFoodToMeal = (food: FoodItem) => {
+    if (!selectedMealTitle) return;
+    
+    setMeals(prevMeals => 
+      prevMeals.map(meal => 
+        meal.title === selectedMealTitle 
+          ? { ...meal, foods: [...meal.foods, food] } 
+          : meal
+      )
+    );
   };
 
   // Calculate nutritional totals
@@ -452,7 +466,7 @@ const Diet = () => {
           <MealSlot
             key={meal.title}
             meal={meal}
-            onAddFood={handleAddFood}
+            onAddFood={handleOpenAddFoodModal}
           />
         ))}
       </div>
@@ -465,6 +479,13 @@ const Diet = () => {
           onClose={() => setShowSettings(false)}
         />
       </AlertDialog>
+
+      {/* Add Food Modal */}
+      <AddFoodModal
+        open={addFoodModalOpen}
+        onClose={() => setAddFoodModalOpen(false)}
+        onAddFood={handleAddFoodToMeal}
+      />
     </div>
   );
 };
