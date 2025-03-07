@@ -30,14 +30,27 @@ export interface NutritionGoals {
   userId?: string;
 }
 
+// Ensure we're handling Supabase responses correctly
+const handleSupabaseResponse = async (promise) => {
+  try {
+    const response = await promise;
+    return response;
+  } catch (error) {
+    console.error('Error in Supabase operation:', error);
+    return { data: null, error };
+  }
+};
+
 // Buscar todas as refeições do usuário para a data atual
 export async function fetchMeals(userId: string, date: string = new Date().toISOString().split('T')[0]) {
   try {
-    const response = await supabase
-      .from('meals')
-      .select('*')
-      .eq('userId', userId)
-      .eq('date', date);
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('meals')
+        .select('*')
+        .eq('userId', userId)
+        .eq('date', date)
+    );
     
     if (response.error) {
       console.error('Erro ao buscar refeições:', response.error);
@@ -54,33 +67,32 @@ export async function fetchMeals(userId: string, date: string = new Date().toISO
 // Salvar uma refeição
 export async function saveMeal(meal: Meal) {
   try {
+    let response;
+    
     // Se já existe um ID, atualiza, senão cria
     if (meal.id) {
-      const response = await supabase
-        .from('meals')
-        .update(meal)
-        .eq('id', meal.id)
-        .select();
-      
-      if (response.error) {
-        console.error('Erro ao atualizar refeição:', response.error);
-        throw response.error;
-      }
-
-      return response.data?.[0];
+      response = await handleSupabaseResponse(
+        supabase
+          .from('meals')
+          .update(meal)
+          .eq('id', meal.id)
+          .select()
+      );
     } else {
-      const response = await supabase
-        .from('meals')
-        .insert(meal)
-        .select();
-      
-      if (response.error) {
-        console.error('Erro ao criar refeição:', response.error);
-        throw response.error;
-      }
-
-      return response.data?.[0];
+      response = await handleSupabaseResponse(
+        supabase
+          .from('meals')
+          .insert(meal)
+          .select()
+      );
     }
+    
+    if (response.error) {
+      console.error('Erro ao salvar refeição:', response.error);
+      throw response.error;
+    }
+
+    return response.data?.[0] || null;
   } catch (err) {
     console.error('Erro ao salvar refeição:', err);
     return null;
@@ -90,10 +102,12 @@ export async function saveMeal(meal: Meal) {
 // Excluir uma refeição
 export async function deleteMeal(id: string) {
   try {
-    const response = await supabase
-      .from('meals')
-      .delete()
-      .eq('id', id);
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('meals')
+        .delete()
+        .eq('id', id)
+    );
     
     if (response.error) {
       console.error('Erro ao excluir refeição:', response.error);
@@ -110,18 +124,20 @@ export async function deleteMeal(id: string) {
 // Buscar as metas nutricionais do usuário
 export async function fetchNutritionGoals(userId: string) {
   try {
-    const response = await supabase
-      .from('nutrition_goals')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('nutrition_goals')
+        .select('*')
+        .eq('userId', userId)
+        .single()
+    );
     
     if (response.error && response.error.code !== 'PGRST116') { // PGRST116 é quando não encontra registros
       console.error('Erro ao buscar metas nutricionais:', response.error);
       throw response.error;
     }
 
-    return response.data;
+    return response.data || null;
   } catch (err) {
     console.error('Erro ao buscar metas nutricionais:', err);
     return null;
@@ -131,33 +147,32 @@ export async function fetchNutritionGoals(userId: string) {
 // Salvar metas nutricionais
 export async function saveNutritionGoals(goals: NutritionGoals) {
   try {
+    let response;
+    
     // Se já existe um ID, atualiza, senão cria
     if (goals.id) {
-      const response = await supabase
-        .from('nutrition_goals')
-        .update(goals)
-        .eq('id', goals.id)
-        .select();
-      
-      if (response.error) {
-        console.error('Erro ao atualizar metas nutricionais:', response.error);
-        throw response.error;
-      }
-
-      return response.data?.[0];
+      response = await handleSupabaseResponse(
+        supabase
+          .from('nutrition_goals')
+          .update(goals)
+          .eq('id', goals.id)
+          .select()
+      );
     } else {
-      const response = await supabase
-        .from('nutrition_goals')
-        .insert(goals)
-        .select();
-      
-      if (response.error) {
-        console.error('Erro ao criar metas nutricionais:', response.error);
-        throw response.error;
-      }
-
-      return response.data?.[0];
+      response = await handleSupabaseResponse(
+        supabase
+          .from('nutrition_goals')
+          .insert(goals)
+          .select()
+      );
     }
+    
+    if (response.error) {
+      console.error('Erro ao salvar metas nutricionais:', response.error);
+      throw response.error;
+    }
+
+    return response.data?.[0] || null;
   } catch (err) {
     console.error('Erro ao salvar metas nutricionais:', err);
     return null;
@@ -167,42 +182,42 @@ export async function saveNutritionGoals(goals: NutritionGoals) {
 // Salvar consumo de água
 export async function saveWaterIntake(userId: string, waterIntake: number, date: string = new Date().toISOString().split('T')[0]) {
   try {
-    const fetchResponse = await supabase
-      .from('water_intake')
-      .select('*')
-      .eq('userId', userId)
-      .eq('date', date)
-      .single();
+    // Primeiro verificamos se já existe um registro para esta data
+    const fetchResponse = await handleSupabaseResponse(
+      supabase
+        .from('water_intake')
+        .select('*')
+        .eq('userId', userId)
+        .eq('date', date)
+        .maybeSingle()
+    );
     
     const existingData = fetchResponse.data;
-    const fetchError = fetchResponse.error;
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Erro ao buscar consumo de água:', fetchError);
-      throw fetchError;
-    }
-
+    let updateResponse;
+    
     if (existingData) {
       // Atualiza o registro existente
-      const updateResponse = await supabase
-        .from('water_intake')
-        .update({ amount: waterIntake })
-        .eq('id', existingData.id);
-      
-      if (updateResponse.error) {
-        console.error('Erro ao atualizar consumo de água:', updateResponse.error);
-        throw updateResponse.error;
-      }
+      updateResponse = await handleSupabaseResponse(
+        supabase
+          .from('water_intake')
+          .update({ amount: waterIntake })
+          .eq('id', existingData.id)
+          .select()
+      );
     } else {
       // Cria um novo registro
-      const insertResponse = await supabase
-        .from('water_intake')
-        .insert({ userId, date, amount: waterIntake });
-      
-      if (insertResponse.error) {
-        console.error('Erro ao registrar consumo de água:', insertResponse.error);
-        throw insertResponse.error;
-      }
+      updateResponse = await handleSupabaseResponse(
+        supabase
+          .from('water_intake')
+          .insert({ userId, date, amount: waterIntake })
+          .select()
+      );
+    }
+    
+    if (updateResponse.error) {
+      console.error('Erro ao salvar consumo de água:', updateResponse.error);
+      throw updateResponse.error;
     }
 
     return waterIntake;
@@ -215,12 +230,14 @@ export async function saveWaterIntake(userId: string, waterIntake: number, date:
 // Buscar consumo de água
 export async function fetchWaterIntake(userId: string, date: string = new Date().toISOString().split('T')[0]) {
   try {
-    const response = await supabase
-      .from('water_intake')
-      .select('amount')
-      .eq('userId', userId)
-      .eq('date', date)
-      .single();
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('water_intake')
+        .select('amount')
+        .eq('userId', userId)
+        .eq('date', date)
+        .maybeSingle()
+    );
     
     if (response.error && response.error.code !== 'PGRST116') {
       console.error('Erro ao buscar consumo de água:', response.error);
@@ -237,11 +254,13 @@ export async function fetchWaterIntake(userId: string, date: string = new Date()
 // Buscar alimentos no banco de dados
 export async function searchFoods(query: string) {
   try {
-    const response = await supabase
-      .from('foods')
-      .select('*')
-      .ilike('name', `%${query}%`)
-      .limit(20);
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('foods')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .limit(20)
+    );
     
     if (response.error) {
       console.error('Erro ao buscar alimentos:', response.error);
@@ -258,17 +277,19 @@ export async function searchFoods(query: string) {
 // Adicionar um alimento personalizado
 export async function addCustomFood(food: Omit<FoodItem, 'id'>, userId: string) {
   try {
-    const response = await supabase
-      .from('foods')
-      .insert({ ...food, userId, isCustom: true })
-      .select();
+    const response = await handleSupabaseResponse(
+      supabase
+        .from('foods')
+        .insert({ ...food, userId, isCustom: true })
+        .select()
+    );
     
     if (response.error) {
       console.error('Erro ao adicionar alimento personalizado:', response.error);
       throw response.error;
     }
 
-    return response.data?.[0];
+    return response.data?.[0] || null;
   } catch (err) {
     console.error('Erro ao adicionar alimento personalizado:', err);
     return null;

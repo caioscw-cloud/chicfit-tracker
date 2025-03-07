@@ -4,20 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { saveCredentials, isSupabaseConfigured } from '@/lib/supabase';
+import { saveCredentials, isSupabaseConfigured, getProjectName } from '@/lib/supabase';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 const SupabaseSettings = () => {
   const [supabaseUrl, setSupabaseUrl] = useState('');
   const [supabaseKey, setSupabaseKey] = useState('');
+  const [projectName, setProjectName] = useState('auth-test');
   const [isConfigured, setIsConfigured] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Check if credentials exist in localStorage
     if (typeof window !== 'undefined') {
       const storedUrl = localStorage.getItem('supabase_url') || '';
       const storedKey = localStorage.getItem('supabase_anon_key') || '';
+      const storedProjectName = getProjectName();
+      
       setSupabaseUrl(storedUrl);
       setSupabaseKey(storedKey);
+      setProjectName(storedProjectName);
       setIsConfigured(isSupabaseConfigured());
     }
   }, []);
@@ -32,11 +38,13 @@ const SupabaseSettings = () => {
       return;
     }
 
+    setIsSaving(true);
+    
     try {
-      saveCredentials(supabaseUrl, supabaseKey);
+      saveCredentials(supabaseUrl, supabaseKey, projectName);
       toast({
         title: "Configuração salva",
-        description: "As credenciais do Supabase foram salvas com sucesso.",
+        description: `As credenciais do projeto "${projectName}" foram salvas com sucesso.`,
       });
     } catch (error) {
       toast({
@@ -44,6 +52,7 @@ const SupabaseSettings = () => {
         description: "Não foi possível salvar as credenciais do Supabase.",
         variant: "destructive",
       });
+      setIsSaving(false);
     }
   };
 
@@ -54,13 +63,29 @@ const SupabaseSettings = () => {
         <CardDescription>
           Configure as credenciais do Supabase para habilitar a sincronização de dados.
           {isConfigured && (
-            <p className="text-green-500 mt-2">
-              ✓ Supabase está configurado
-            </p>
+            <div className="flex items-center gap-1 text-green-500 mt-2">
+              <CheckCircle size={16} />
+              <span>Supabase está configurado</span>
+            </div>
           )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="project-name" className="text-sm font-medium">
+            Nome do Projeto
+          </label>
+          <Input
+            id="project-name"
+            placeholder="auth-test"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            Um nome para identificar este projeto
+          </p>
+        </div>
+        
         <div className="space-y-2">
           <label htmlFor="supabase-url" className="text-sm font-medium">
             URL do Supabase
@@ -93,8 +118,12 @@ const SupabaseSettings = () => {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSaveCredentials} className="w-full">
-          Salvar configurações
+        <Button 
+          onClick={handleSaveCredentials} 
+          className="w-full"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Salvando...' : 'Salvar configurações'}
         </Button>
       </CardFooter>
     </Card>

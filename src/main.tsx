@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { checkSupabaseConnection, isSupabaseConfigured } from './lib/supabase.ts'
+import { checkSupabaseConnection, isSupabaseConfigured, getProjectName } from './lib/supabase.ts'
 import { toast } from '@/components/ui/use-toast'
 
 // Get the container element
@@ -17,17 +17,26 @@ createRoot(container).render(<App />);
 
 // Verify Supabase connection after rendering
 if (isSupabaseConfigured()) {
+  const projectName = getProjectName();
+  
   checkSupabaseConnection()
     .then(isConnected => {
-      if (!isConnected) {
-        console.warn('Supabase connection issues detected. Check your credentials.');
+      if (isConnected) {
+        console.log(`Conexão com Supabase (${projectName}) estabelecida com sucesso`);
+        toast({
+          title: "Conexão estabelecida",
+          description: `Conectado ao projeto "${projectName}" do Supabase.`,
+          duration: 3000,
+        });
+      } else {
+        console.warn(`Problemas de conexão com o Supabase (${projectName}) detectados. Verifique suas credenciais.`);
       }
     })
     .catch(error => {
-      console.error('Failed to check Supabase connection:', error);
+      console.error('Falha ao verificar conexão com o Supabase:', error);
     });
 } else {
-  console.warn('Supabase credentials not configured. Some features may not work properly.');
+  console.warn('Credenciais do Supabase não configuradas. Alguns recursos podem não funcionar corretamente.');
   
   // Show toast notification to direct user to settings
   setTimeout(() => {

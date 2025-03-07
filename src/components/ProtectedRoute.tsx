@@ -2,7 +2,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured, getProjectName } from '@/lib/supabase';
 import SupabaseSettings from './SupabaseSettings';
 
 interface ProtectedRouteProps {
@@ -12,11 +12,13 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
+  const [projectName, setProjectName] = useState('');
 
   useEffect(() => {
     // Check if Supabase is configured
     const configured = isSupabaseConfigured();
     setShowSettings(!configured);
+    setProjectName(getProjectName());
   }, []);
 
   // If we're still loading auth state, show loading
@@ -32,7 +34,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   if (showSettings) {
     return (
       <div className="min-h-screen p-4 flex flex-col items-center justify-center bg-background">
-        <h1 className="text-2xl font-bold mb-8">Configuração necessária</h1>
+        <h1 className="text-2xl font-bold mb-8">Configuração do Supabase</h1>
         <p className="text-muted-foreground mb-8 text-center max-w-md">
           Para utilizar todos os recursos do aplicativo, configure suas credenciais do Supabase abaixo.
         </p>
