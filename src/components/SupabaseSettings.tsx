@@ -8,8 +8,8 @@ import { saveCredentials, isSupabaseConfigured, getProjectName } from '@/lib/sup
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
 const SupabaseSettings = () => {
-  const [supabaseUrl, setSupabaseUrl] = useState('');
-  const [supabaseKey, setSupabaseKey] = useState('');
+  const [supabaseUrl, setSupabaseUrl] = useState('https://dsrtgqbavmpmgiofwrqx.supabase.co');
+  const [supabaseKey, setSupabaseKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzcnRncWJhdm1wbWdpb2Z3cnF4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTI4MTk2NSwiZXhwIjoyMDU2ODU3OTY1fQ.smluKWz55Xe6nCyJFplupzxHJ5Lww9-S6QEr4MjUYoc');
   const [projectName, setProjectName] = useState('auth-test');
   const [isConfigured, setIsConfigured] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -21,9 +21,12 @@ const SupabaseSettings = () => {
       const storedKey = localStorage.getItem('supabase_anon_key') || '';
       const storedProjectName = getProjectName();
       
-      setSupabaseUrl(storedUrl);
-      setSupabaseKey(storedKey);
-      setProjectName(storedProjectName);
+      if (storedUrl && storedKey) {
+        setSupabaseUrl(storedUrl);
+        setSupabaseKey(storedKey);
+        setProjectName(storedProjectName);
+      }
+      
       setIsConfigured(isSupabaseConfigured());
     }
   }, []);
@@ -46,6 +49,8 @@ const SupabaseSettings = () => {
         title: "Configuração salva",
         description: `As credenciais do projeto "${projectName}" foram salvas com sucesso.`,
       });
+      setIsConfigured(true);
+      setIsSaving(false);
     } catch (error) {
       toast({
         title: "Erro ao salvar",

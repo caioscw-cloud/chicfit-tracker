@@ -56,6 +56,23 @@ const createMockClient = () => {
   };
 
   // Create a more consistent mock client that always returns Promises with data and error properties
+  const createChainableMock = () => {
+    const chainable: any = {};
+    const methods = [
+      'select', 'insert', 'update', 'delete', 'eq', 'neq', 'gt', 'lt', 'gte', 'lte',
+      'like', 'ilike', 'is', 'in', 'contains', 'limit', 'single', 'match'
+    ];
+    
+    methods.forEach(method => {
+      chainable[method] = () => createChainableMock();
+    });
+    
+    // Ensure the mock resolves to a proper response with data and error
+    chainable.then = (callback: any) => Promise.resolve({ data: [], error: null }).then(callback);
+    
+    return chainable;
+  };
+
   return {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
@@ -64,36 +81,9 @@ const createMockClient = () => {
       signUp: () => mockErrorResponse('Mock Supabase client cannot register users'),
       signOut: () => Promise.resolve({ error: null })
     },
-    from: (tableName: string) => {
-      return {
-        select: () => ({
-          eq: () => ({
-            eq: () => mockResponse([]),
-            single: () => mockResponse(null),
-            limit: () => mockResponse([])
-          }),
-          single: () => mockResponse(null),
-          limit: () => mockResponse([]),
-          ilike: () => ({ limit: () => mockResponse([]) }),
-          then: (onfulfilled: any) => ensurePromise(mockResponse([])).then(onfulfilled)
-        }),
-        insert: () => ({
-          select: () => mockResponse([]),
-          then: (onfulfilled: any) => ensurePromise(mockResponse([])).then(onfulfilled)
-        }),
-        update: () => ({
-          eq: () => ({ 
-            select: () => mockResponse([]),
-            then: (onfulfilled: any) => ensurePromise(mockResponse([])).then(onfulfilled)
-          }),
-          then: (onfulfilled: any) => ensurePromise(mockResponse([])).then(onfulfilled)
-        }),
-        delete: () => ({
-          eq: () => mockResponse(),
-          then: (onfulfilled: any) => ensurePromise(mockResponse()).then(onfulfilled)
-        }),
-        then: (onfulfilled: any) => ensurePromise(mockResponse()).then(onfulfilled)
-      };
+    from: () => {
+      const chainable = createChainableMock();
+      return chainable;
     }
   } as unknown as SupabaseClient;
 };
@@ -138,11 +128,11 @@ export const checkSupabaseConnection = async () => {
   }
   
   try {
-    // Try a simple query to check connection
-    const response = await supabase.from('healthcheck').select('*').limit(1);
+    // Try to get the user session as a simple connection test
+    const { error } = await supabase.auth.getSession();
     
-    if (response.error) {
-      console.error('Erro ao conectar com o Supabase:', response.error.message);
+    if (error) {
+      console.error('Erro ao conectar com o Supabase:', error.message);
       toast({
         title: "Erro de conexão",
         description: "Não foi possível conectar ao Supabase. Verifique suas credenciais.",
