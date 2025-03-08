@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AddFood from "./pages/AddFood";
 import NewWorkout from "./pages/NewWorkout";
+import Diet from "./pages/Diet";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -47,6 +48,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <NewWorkout />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/diet" 
+              element={
+                <ProtectedRoute>
+                  <Diet />
                 </ProtectedRoute>
               } 
             />
