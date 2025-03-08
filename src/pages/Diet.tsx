@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +33,6 @@ import {
   saveWaterIntake
 } from "@/services/mealService";
 
-// Progress bar component for macros
 const MacroProgressBar = ({ current, goal, color }: { current: number; goal: number; color: string }) => {
   const percentage = Math.min((current / goal) * 100, 100);
   
@@ -48,7 +46,6 @@ const MacroProgressBar = ({ current, goal, color }: { current: number; goal: num
   );
 };
 
-// Nutrition goals settings modal
 const NutritionGoalsSettings = ({ 
   goals, 
   onUpdateGoals, 
@@ -61,12 +58,10 @@ const NutritionGoalsSettings = ({
   const [localGoals, setLocalGoals] = useState<NutritionGoals>(goals);
   const { toast } = useToast();
 
-  // Calculate calories based on macros
   const calculateCalories = (protein: number, carbs: number, fats: number) => {
     return (protein * 4) + (carbs * 4) + (fats * 9);
   };
 
-  // Update calories when macros change
   React.useEffect(() => {
     const calculatedCalories = calculateCalories(
       localGoals.protein,
@@ -184,7 +179,6 @@ const NutritionGoalsSettings = ({
   );
 };
 
-// Water tracker component
 const WaterTracker = ({ 
   waterIntake, 
   waterGoal, 
@@ -236,7 +230,6 @@ const WaterTracker = ({
   );
 };
 
-// Meal slot component
 const MealSlot = ({ 
   meal, 
   onAddFood,
@@ -296,7 +289,6 @@ const MealSlot = ({
   );
 };
 
-// Default meals template
 const DEFAULT_MEAL_TEMPLATES: Omit<Meal, "id" | "userId" | "date">[] = [
   { title: "Café da Manhã", time: "07:00", foods: [] },
   { title: "Lanche da Manhã", time: "10:00", foods: [] },
@@ -306,7 +298,6 @@ const DEFAULT_MEAL_TEMPLATES: Omit<Meal, "id" | "userId" | "date">[] = [
   { title: "Ceia", time: "21:00", foods: [] }
 ];
 
-// Default goals
 const DEFAULT_GOALS: NutritionGoals = {
   calories: 2500,
   protein: 180,
@@ -329,10 +320,8 @@ const Diet = () => {
   const [selectedMealTitle, setSelectedMealTitle] = useState<string | null>(null);
   const [editingFood, setEditingFood] = useState<FoodItem | undefined>(undefined);
 
-  // Formatted date for database
   const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
-  // Check if user is logged in
   useEffect(() => {
     if (!user) {
       toast({
@@ -346,16 +335,13 @@ const Diet = () => {
     }
   }, [user, navigate, toast, formattedDate]);
 
-  // Load all data for the selected date
   const loadData = async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      // Fetch meals for the selected date
       const fetchedMeals = await fetchMeals(user.id, formattedDate);
       
-      // If no meals exist for today, create default meal slots
       if (fetchedMeals.length === 0) {
         const defaultMeals = DEFAULT_MEAL_TEMPLATES.map(template => ({
           ...template,
@@ -363,7 +349,6 @@ const Diet = () => {
           date: formattedDate
         }));
         
-        // Save default meals to the database
         const savedMeals = await Promise.all(
           defaultMeals.map(meal => saveMeal(meal))
         );
@@ -373,13 +358,11 @@ const Diet = () => {
         setMeals(fetchedMeals);
       }
       
-      // Fetch nutrition goals
       const goals = await fetchNutritionGoals(user.id);
       if (goals) {
         setNutritionGoals(goals);
       }
       
-      // Fetch water intake for the selected date
       const water = await fetchWaterIntake(user.id, formattedDate);
       setWaterIntake(water);
       
@@ -395,7 +378,6 @@ const Diet = () => {
     }
   };
 
-  // Update nutrition goals
   const handleUpdateGoals = async (goals: NutritionGoals) => {
     if (!user) return;
     
@@ -415,7 +397,6 @@ const Diet = () => {
     }
   };
 
-  // Add water intake
   const handleAddWater = async (amount: number) => {
     if (!user) return;
     
@@ -438,38 +419,31 @@ const Diet = () => {
     }
   };
 
-  // Open add food modal
   const handleOpenAddFoodModal = (mealTitle: string) => {
     setSelectedMealTitle(mealTitle);
     setEditingFood(undefined);
     setAddFoodModalOpen(true);
   };
 
-  // Open edit food modal
   const handleEditFood = (mealTitle: string, food: FoodItem) => {
     setSelectedMealTitle(mealTitle);
     setEditingFood(food);
     setAddFoodModalOpen(true);
   };
 
-  // Delete food from meal
   const handleDeleteFood = async (mealTitle: string, foodId: string) => {
     if (!user) return;
     
     try {
-      // Find the meal
       const meal = meals.find(m => m.title === mealTitle);
       if (!meal || !meal.id) return;
       
-      // Remove the food from the meal
       const updatedFoods = meal.foods.filter(f => f.id !== foodId);
       
-      // Update the meal with the new foods array
       const updatedMeal = { ...meal, foods: updatedFoods };
       const savedMeal = await saveMeal(updatedMeal);
       
       if (savedMeal) {
-        // Update the meals state with the updated meal
         setMeals(meals.map(m => m.id === savedMeal.id ? savedMeal : m));
         
         toast({
@@ -487,33 +461,27 @@ const Diet = () => {
     }
   };
 
-  // Add or update food in a meal
   const handleAddFoodToMeal = async (food: FoodItem) => {
     if (!user || !selectedMealTitle) return;
     
     try {
-      // Find the meal to add/update the food to
       const meal = meals.find(m => m.title === selectedMealTitle);
       if (!meal || !meal.id) return;
       
       let updatedFoods: FoodItem[];
       
       if (editingFood) {
-        // Replace the existing food with the updated one
         updatedFoods = meal.foods.map(f => 
           f.id === editingFood.id ? food : f
         );
       } else {
-        // Add the new food to the meal
         updatedFoods = [...meal.foods, food];
       }
       
-      // Update the meal with the new foods array
       const updatedMeal = { ...meal, foods: updatedFoods };
       const savedMeal = await saveMeal(updatedMeal);
       
       if (savedMeal) {
-        // Update the meals state with the updated meal
         setMeals(meals.map(m => m.id === savedMeal.id ? savedMeal : m));
       }
     } catch (error) {
@@ -526,7 +494,6 @@ const Diet = () => {
     }
   };
 
-  // Calculate nutritional totals from all meals
   const totals = {
     calories: meals.reduce((sum, meal) => 
       sum + meal.foods.reduce((mealSum, food) => mealSum + food.calories, 0), 0),
@@ -538,10 +505,15 @@ const Diet = () => {
       sum + meal.foods.reduce((mealSum, food) => mealSum + food.fats, 0), 0),
   };
 
-  // Handle date change
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
   };
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [formattedDate, user]);
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -557,7 +529,6 @@ const Diet = () => {
         </Button>
       </div>
 
-      {/* Date Selector */}
       <DateSelector
         selectedDate={selectedDate}
         onDateChange={handleDateChange}
@@ -569,7 +540,6 @@ const Diet = () => {
         </div>
       ) : (
         <>
-          {/* Macro Tracker */}
           <Card className="p-6 mb-6 bg-card">
             <div className="grid gap-4">
               <div>
@@ -622,14 +592,12 @@ const Diet = () => {
             </div>
           </Card>
 
-          {/* Water Tracker */}
           <WaterTracker 
             waterIntake={waterIntake}
             waterGoal={nutritionGoals.waterIntake}
             onAddWater={handleAddWater}
           />
 
-          {/* Meal Slots */}
           <div className="grid gap-4">
             {meals.map((meal) => (
               <MealSlot
@@ -644,7 +612,6 @@ const Diet = () => {
         </>
       )}
 
-      {/* Settings Modal */}
       <AlertDialog open={showSettings} onOpenChange={setShowSettings}>
         <NutritionGoalsSettings
           goals={nutritionGoals}
@@ -653,7 +620,6 @@ const Diet = () => {
         />
       </AlertDialog>
 
-      {/* Add Food Modal */}
       <AddFoodModal
         open={addFoodModalOpen}
         onClose={() => setAddFoodModalOpen(false)}
